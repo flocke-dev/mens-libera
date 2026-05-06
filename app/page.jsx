@@ -123,10 +123,14 @@ export default function App() {
     setAnalysing(true);setResult(null);let s=0;setStep(0);
     const iv=setInterval(()=>{s=Math.min(s+1,3);setStep(s);},1000);
     try{
+      const promptText=`Analysiere diesen deutschsprachigen Nachrichtenartikel objektiv.\n\nARTIKEL:\n${txt.slice(0,3000)}\n\nAntworte NUR als JSON ohne Backticks:\n{"titel":"<max 70 Zeichen>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 belegbare Fakten>],"meinungen":[<3-4 verkleidete Meinungen>],"fehlt":[<3-4 fehlende Perspektiven>],"reisser":[<2-3 reißerische Zitate>],"urteil":"<2 Sätze>","sachTitel":"<sachlicher Titel>","sach":"<180-220 Wörter sachlicher Bericht, Absätze durch \\n\\n>"}`;
       const res=await fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Analysiere diesen deutschsprachigen Nachrichtenartikel objektiv.\n\nARTIKEL:\n${txt.slice(0,3000)}\n\nAntworte NUR als JSON ohne Backticks:\n{"titel":"<max 70 Zeichen>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 belegbare Fakten>],"meinungen":[<3-4 verkleidete Meinungen>],"fehlt":[<3-4 fehlende Perspektiven>],"reisser":[<2-3 reißerische Zitate>],"urteil":"<2 Sätze>","sachTitel":"<sachlicher Titel>","sach":"<180-220 Wörter sachlicher Bericht, Absätze durch \\n\\n>"}`}]})});
-      const d=await res.json();const raw=d.content.map(i=>i.text||"").join("");
-      const p=JSON.parse(raw.replace(/```json|```/g,"").trim());
+        body:JSON.stringify({messages:[{role:"user",content:promptText}]})});
+      const d=await res.json();
+      const raw=d.content?.[0]?.text||d.content?.map(i=>i.text||"").join("")||"";
+      const match=raw.match(/\{[\s\S]*\}/);
+      if(!match)throw new Error("Kein JSON");
+      const p=JSON.parse(match[0]);
       clearInterval(iv);setResult(p);setTab("analyse");
       setHistory(h=>[{title:p.titel,panik:p.scores?.panik,g,result:p,ts:Date.now()},...h].slice(0,15));
     }catch{clearInterval(iv);setResult({error:true});}
