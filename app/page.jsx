@@ -203,7 +203,9 @@ export default function App() {
           .row-title{font-size:16px !important;line-height:1.5 !important;word-break:break-word !important;}
           .row span{font-size:12px !important;}
           .ml-panel p{font-size:15px !important;line-height:1.7 !important;word-break:break-word !important;}
+          .ml-back-btn{display:flex !important;}
         }
+        .ml-back-btn{display:none;}
       `}</style>
 
       {/* ── NAV ── */}
@@ -330,6 +332,14 @@ export default function App() {
 
         {/* ── PANEL ── */}
         <div ref={panelRef} className="ml-panel" style={{paddingLeft:24,borderLeft:"1px solid var(--border)"}}>
+
+          {/* Mobile back button */}
+          {(sel||manual)&&(
+            <button className="ml-back-btn" onClick={()=>{setSel(null);setResult(null);setManual(false);window.scrollTo({top:0,behavior:"smooth"});}}
+              style={{alignItems:"center",gap:6,marginBottom:16,background:"none",border:"none",color:"var(--accent)",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:500,cursor:"pointer",minHeight:44,padding:"0 4px"}}>
+              ← Zurück zum Feed
+            </button>
+          )}
 
           {/* Manual input */}
           {manual&&(
