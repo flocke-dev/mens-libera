@@ -48,22 +48,21 @@ const CATS = [{id:"alle",label:"Alles"},{id:"politik",label:"Politik"},{id:"wirt
 const CAT_KW = {politik:["bundestag","regierung","minister","kanzler","partei","wahl","spd","cdu","grüne","koalition","gesetz","parlament"],wirtschaft:["wirtschaft","aktie","börse","dax","unternehmen","bank","inflation","euro","konjunktur","steuer","haushalt","wachstum","rezession"],international:["usa","china","russland","ukraine","eu","nato","israel","iran","krieg","konflikt","außenpolitik","europa"],technologie:["ki","künstliche intelligenz","tech","digital","software","chip","energie","innovation","startup","openai","google","apple","meta"]};
 function detectCat(t,d=""){const txt=(t+" "+d).toLowerCase();for(const[c,ks]of Object.entries(CAT_KW))if(ks.some(k=>txt.includes(k)))return c;return"gesellschaft";}
 
+// Colors without CSS variables — switched via JS for dynamic/conditional usage
 const DARK = {
-  bg:"#0b0b12", nav:"#080810", card:"#12101a",
-  border:"#1e1c2a", border2:"#2a2535",
-  accent:"#c8a96e", accentAlt:"#d97706",
-  text:"#e8e4d9", textHigh:"#f0ece0", textMid:"#6b7280",
-  textLow:"#52525b", textFaint:"#4a4560", textBody:"#c8c4b9",
+  border2:"#2a2535",
+  accentAlt:"#d97706",
+  textHigh:"#f0ece0", textMid:"#6b7280",
+  textLow:"#52525b",  textBody:"#c8c4b9",
   rowTitle:"#b8b4a8", hoverBg:"#18181b",
   titleColor:"#ffffff", arrowColor:"#3f3f46",
   uniqueWord:"#f0f0f0", commonWord:"#52525b",
 };
 const LIGHT = {
-  bg:"#f7f5f0", nav:"#ffffff", card:"#eeece7",
-  border:"#ddd8cf", border2:"#c8c3b8",
-  accent:"#a07828", accentAlt:"#b45309",
-  text:"#1a1a1a", textHigh:"#111111", textMid:"#4b5563",
-  textLow:"#6b7280", textFaint:"#9ca3af", textBody:"#374151",
+  border2:"#c8c3b8",
+  accentAlt:"#b45309",
+  textHigh:"#111111", textMid:"#4b5563",
+  textLow:"#6b7280",  textBody:"#374151",
   rowTitle:"#374151", hoverBg:"#e5e0d6",
   titleColor:"#111111", arrowColor:"#9ca3af",
   uniqueWord:"#111111", commonWord:"#6b7280",
@@ -92,13 +91,16 @@ export default function App() {
   const T = dark ? DARK : LIGHT;
 
   useEffect(()=>{
-    const saved = localStorage.getItem('ml-dark');
-    if(saved !== null) setDark(saved === '1');
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    setDark(saved === 'dark');
     load();
   },[]);
 
   useEffect(()=>{
-    localStorage.setItem('ml-dark', dark ? '1' : '0');
+    const theme = dark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   },[dark]);
 
   async function load(){
@@ -155,7 +157,7 @@ export default function App() {
   const TABS=[{id:"headlines",label:"Schlagzeilen"},{id:"analyse",label:"KI-Analyse"},{id:"fakten",label:"Fakten"},{id:"fehlt",label:"Was fehlt"},{id:"sach",label:"Sachbericht"}];
 
   return (
-    <div className="ml-root" style={{background:T.bg,minHeight:"100vh",color:T.text,fontFamily:"'EB Garamond', Georgia, serif"}}>
+    <div className="ml-root" style={{background:"var(--bg)",minHeight:"100vh",color:"var(--text)",fontFamily:"'EB Garamond', Georgia, serif"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -167,8 +169,8 @@ export default function App() {
         .row:hover .row-title{color:${T.textHigh} !important}
         .row:hover{background:${T.hoverBg} !important}
         a{text-decoration:none;color:inherit;}
-        input::placeholder{color:${T.textFaint};}
-        input:focus{outline:none;border-color:${T.textFaint} !important;}
+        input::placeholder{color:var(--text-sub);}
+        input:focus{outline:none;border-color:var(--text-sub) !important;}
         textarea:focus{outline:none;}
         @media (max-width:768px){
           html,body{overflow-x:hidden !important;}
@@ -184,7 +186,7 @@ export default function App() {
           .ml-filter-btn{min-height:44px !important;padding:10px 12px !important;display:inline-flex !important;align-items:center !important;}
           .ml-grid{grid-template-columns:1fr !important;padding:0 16px 60px !important;gap:0 !important;overflow-x:hidden !important;}
           .ml-aside{position:static !important;max-height:none !important;overflow-y:visible !important;padding-right:0 !important;overflow-x:hidden !important;}
-          .ml-panel{padding-left:0 !important;border-left:none !important;border-top:1px solid ${T.border} !important;padding-top:20px !important;margin-top:16px !important;overflow-x:hidden !important;}
+          .ml-panel{padding-left:0 !important;border-left:none !important;border-top:1px solid var(--border) !important;padding-top:20px !important;margin-top:16px !important;overflow-x:hidden !important;}
           .ml-2col{grid-template-columns:1fr !important;}
           .ml-tabs{overflow-x:auto !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
           .ml-tabs::-webkit-scrollbar{display:none;}
@@ -197,23 +199,23 @@ export default function App() {
       `}</style>
 
       {/* ── NAV ── */}
-      <nav style={{borderBottom:`1px solid ${T.border}`,background:T.nav,position:"sticky",top:0,zIndex:50}}>
+      <nav style={{borderBottom:"1px solid var(--border)",background:"var(--nav-bg)",position:"sticky",top:0,zIndex:50}}>
         <div className="ml-nav-row" style={{maxWidth:1320,margin:"0 auto",padding:"0 24px",height:56,display:"flex",alignItems:"center",gap:20}}>
           {/* Logo */}
           <div style={{flexShrink:0}}>
             <div style={{display:"flex",alignItems:"baseline",gap:5}}>
               <span style={{fontFamily:"'EB Garamond',Georgia,serif",fontSize:22,fontWeight:600,letterSpacing:-0.5,color:T.textHigh}}>Mens</span>
-              <span style={{fontFamily:"'EB Garamond',Georgia,serif",fontSize:22,fontWeight:400,letterSpacing:-0.5,color:T.accent,fontStyle:"italic"}}>Libera</span>
-              <span style={{width:5,height:5,borderRadius:"50%",background:T.accent,display:"inline-block",marginLeft:2,marginBottom:4}}/>
+              <span style={{fontFamily:"'EB Garamond',Georgia,serif",fontSize:22,fontWeight:400,letterSpacing:-0.5,color:"var(--accent)",fontStyle:"italic"}}>Libera</span>
+              <span style={{width:5,height:5,borderRadius:"50%",background:"var(--accent)",display:"inline-block",marginLeft:2,marginBottom:4}}/>
             </div>
-            <div style={{fontSize:8,letterSpacing:4,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginTop:1}}>DER FREIE VERSTAND</div>
+            <div style={{fontSize:8,letterSpacing:4,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginTop:1}}>DER FREIE VERSTAND</div>
           </div>
 
           {/* Search */}
           <div className="ml-search" style={{flex:1,maxWidth:380,position:"relative"}}>
-            <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:T.textFaint}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"var(--text-sub)"}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suchen…"
-              style={{width:"100%",background:T.card,border:`1px solid ${T.border2}`,color:T.text,padding:"7px 12px 7px 32px",fontSize:13,fontFamily:"'DM Sans',sans-serif",borderRadius:4}}/>
+              style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"7px 12px 7px 32px",fontSize:13,fontFamily:"'DM Sans',sans-serif",borderRadius:4}}/>
           </div>
 
           <div className="ml-nav-spacer" style={{flex:1}}/>
@@ -222,17 +224,17 @@ export default function App() {
           <button className="ml-text-btn" onClick={()=>{setManual(true);setSel(null);setResult(null);setManualTxt("");}} style={{background:"transparent",border:`1px solid ${T.border2}`,color:T.textMid,padding:"5px 14px",fontSize:12,fontFamily:"'DM Sans',sans-serif",borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:14}}>+</span> Text eingeben
           </button>
-          <button onClick={load} disabled={loading} style={{background:loading?T.card:T.accent,border:"none",color:loading?T.textFaint:T.bg,padding:"5px 14px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600,borderRadius:4,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:6}}>
+          <button onClick={load} disabled={loading} style={{background:loading?"var(--bg-panel)":"var(--accent)",border:"none",color:loading?"var(--text-sub)":"var(--bg)",padding:"5px 14px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600,borderRadius:4,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:6}}>
             {loading
-              ? <><span style={{width:12,height:12,border:`1.5px solid ${T.textFaint}`,borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>{loaded}/{SOURCES.length}</>
+              ? <><span style={{width:12,height:12,border:"1.5px solid var(--text-sub)",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>{loaded}/{SOURCES.length}</>
               : <>↻ Aktualisieren</>}
           </button>
           {history.length>0&&(
-            <div style={{fontSize:11,color:T.textFaint,fontFamily:"'DM Sans',sans-serif"}}>{history.length} Analysen</div>
+            <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif"}}>{history.length} Analysen</div>
           )}
           {/* Theme toggle */}
           <button onClick={()=>setDark(d=>!d)} title={dark?"Hell-Modus":"Dunkel-Modus"}
-            style={{background:"none",border:`1px solid ${T.border2}`,color:T.textFaint,width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            style={{background:"none",border:`1px solid ${T.border2}`,color:"var(--text-sub)",width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             {dark
               ? <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
               : <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>}
@@ -240,15 +242,15 @@ export default function App() {
         </div>
 
         {/* Category + Bias strip */}
-        <div className="ml-cat-strip" style={{borderTop:`1px solid ${T.border}`,maxWidth:1320,margin:"0 auto",padding:"0 24px",height:38,display:"flex",alignItems:"center",gap:2}}>
+        <div className="ml-cat-strip" style={{borderTop:"1px solid var(--border)",maxWidth:1320,margin:"0 auto",padding:"0 24px",height:38,display:"flex",alignItems:"center",gap:2}}>
           {CATS.map(c=>(
-            <button key={c.id} onClick={()=>setCat(c.id)} className="ml-cat-btn" style={{background:"none",border:"none",color:cat===c.id?T.textHigh:T.textFaint,padding:"4px 12px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:cat===c.id?600:400,cursor:"pointer",borderBottom:`2px solid ${cat===c.id?T.accent:"transparent"}`,transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            <button key={c.id} onClick={()=>setCat(c.id)} className="ml-cat-btn" style={{background:"none",border:"none",color:cat===c.id?T.textHigh:"var(--text-sub)",padding:"4px 12px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:cat===c.id?600:400,cursor:"pointer",borderBottom:cat===c.id?"2px solid var(--accent)":"2px solid transparent",transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {c.label}
             </button>
           ))}
           <div style={{width:1,height:16,background:T.border2,margin:"0 8px"}}/>
           {[{id:"alle",label:"Alle Quellen"},{id:"links",label:"Links"},{id:"rechts",label:"Rechts"},{id:"alternativ",label:"Alternativ"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
-            <button key={f.id} onClick={()=>setBias(f.id)} className="ml-filter-btn" style={{background:"none",border:"none",color:bias===f.id?T.accent:T.textFaint,padding:"4px 10px",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            <button key={f.id} onClick={()=>setBias(f.id)} className="ml-filter-btn" style={{background:"none",border:"none",color:bias===f.id?"var(--accent)":"var(--text-sub)",padding:"4px 10px",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {f.label}
             </button>
           ))}
@@ -266,14 +268,14 @@ export default function App() {
           {/* Loading state */}
           {loading&&(
             <div>
-              <div style={{height:2,background:T.border,borderRadius:1,marginBottom:16,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${(loaded/SOURCES.length)*100}%`,background:T.accent,transition:"width 0.3s",borderRadius:1}}/>
+              <div style={{height:2,background:"var(--border)",borderRadius:1,marginBottom:16,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${(loaded/SOURCES.length)*100}%`,background:"var(--accent)",transition:"width 0.3s",borderRadius:1}}/>
               </div>
               {[...Array(7)].map((_,i)=>(
-                <div key={i} style={{padding:"14px 0",borderBottom:`1px solid ${T.border}`,animation:"pulse 1.8s infinite",animationDelay:`${i*0.1}s`}}>
-                  <div style={{height:11,background:T.border,borderRadius:2,marginBottom:8,width:"90%"}}/>
-                  <div style={{height:11,background:T.border,borderRadius:2,marginBottom:10,width:"70%"}}/>
-                  <div style={{height:5,background:T.border,borderRadius:1,width:"40%"}}/>
+                <div key={i} style={{padding:"14px 0",borderBottom:"1px solid var(--border)",animation:"pulse 1.8s infinite",animationDelay:`${i*0.1}s`}}>
+                  <div style={{height:11,background:"var(--border)",borderRadius:2,marginBottom:8,width:"90%"}}/>
+                  <div style={{height:11,background:"var(--border)",borderRadius:2,marginBottom:10,width:"70%"}}/>
+                  <div style={{height:5,background:"var(--border)",borderRadius:1,width:"40%"}}/>
                 </div>
               ))}
             </div>
@@ -286,7 +288,7 @@ export default function App() {
             const scores=srcs.map(s=>s.biasScore);
             const isBlindspot=srcs.length>=2&&(scores.every(x=>x<0)||scores.every(x=>x>0));
             return (
-              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"14px 0",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:isSelected?`${T.accent}0d`:"transparent",transition:"background 0.15s",paddingLeft:isSelected?10:0,borderLeft:isSelected?`2px solid ${T.accent}`:"2px solid transparent",marginLeft:-2}}>
+              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"14px 0",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s",paddingLeft:isSelected?10:0,borderLeft:isSelected?"2px solid var(--accent)":"2px solid transparent",marginLeft:-2}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
                   <div style={{display:"flex",gap:3}}>
                     {srcs.map(s=>(
@@ -294,7 +296,7 @@ export default function App() {
                     ))}
                   </div>
                   {isBlindspot&&<span style={{fontSize:9,color:"#f87171",fontFamily:"'DM Sans',sans-serif",letterSpacing:0.5}}>BLINDSPOT</span>}
-                  <span style={{fontSize:10,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
+                  <span style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
                 </div>
                 <p className="row-title" style={{fontSize:14,lineHeight:1.5,color:isSelected?T.textHigh:T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:500,marginBottom:6,transition:"color 0.15s"}}>
                   {g[0].title}
@@ -305,7 +307,7 @@ export default function App() {
                       {s.label}{s.credibility!=="hoch"&&<span style={{color:CRED[s.credibility],marginLeft:2}}>·</span>}
                     </span>
                   ))}
-                  {srcs.length>4&&<span style={{fontSize:10,color:T.textFaint,fontFamily:"'DM Sans',sans-serif"}}>+{srcs.length-4}</span>}
+                  {srcs.length>4&&<span style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif"}}>+{srcs.length-4}</span>}
                 </div>
               </div>
             );
@@ -313,7 +315,7 @@ export default function App() {
         </aside>
 
         {/* ── PANEL ── */}
-        <div ref={panelRef} className="ml-panel" style={{paddingLeft:24,borderLeft:`1px solid ${T.border}`}}>
+        <div ref={panelRef} className="ml-panel" style={{paddingLeft:24,borderLeft:"1px solid var(--border)"}}>
 
           {/* Manual input */}
           {manual&&(
@@ -321,11 +323,11 @@ export default function App() {
               <div style={{marginBottom:20}}>
                 <div style={{fontSize:11,letterSpacing:2,color:T.textLow,fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>EIGENEN TEXT ANALYSIEREN</div>
                 <textarea value={manualTxt} onChange={e=>setManualTxt(e.target.value)} rows={8}
-                  style={{width:"100%",background:T.card,border:`1px solid ${T.border2}`,color:T.text,padding:"14px 16px",fontSize:14,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",resize:"vertical",outline:"none",borderRadius:4}}
+                  style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"14px 16px",fontSize:14,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",resize:"vertical",outline:"none",borderRadius:4}}
                   placeholder="Artikel hier einfügen…"/>
                 <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
                   <button onClick={()=>analyse(manualTxt,null)} disabled={analysing||manualTxt.length<80}
-                    style={{background:analysing||manualTxt.length<80?T.card:T.accent,color:analysing||manualTxt.length<80?T.textFaint:T.bg,border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
+                    style={{background:analysing||manualTxt.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||manualTxt.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
                     {analysing?"Analysiere…":"Analysieren →"}
                   </button>
                 </div>
@@ -362,13 +364,13 @@ export default function App() {
               {/* Tabs */}
               <div className="ml-tabs" style={{display:"flex",gap:0,borderBottom:`1px solid ${T.border2}`,marginBottom:24}}>
                 {TABS.map(t=>(
-                  <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?T.accent:"transparent"}`,marginBottom:-1,padding:"8px 16px",fontSize:12,fontFamily:"'DM Sans',sans-serif",color:tab===t.id?T.textHigh:T.textFaint,cursor:"pointer",fontWeight:tab===t.id?500:400,transition:"all 0.15s",whiteSpace:"nowrap"}}>
+                  <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",borderBottom:tab===t.id?"2px solid var(--accent)":"2px solid transparent",marginBottom:-1,padding:"8px 16px",fontSize:12,fontFamily:"'DM Sans',sans-serif",color:tab===t.id?T.textHigh:"var(--text-sub)",cursor:"pointer",fontWeight:tab===t.id?500:400,transition:"all 0.15s",whiteSpace:"nowrap"}}>
                     {t.label}
                   </button>
                 ))}
                 {result&&(
                   <button onClick={()=>{navigator.clipboard.writeText(`Mens Libera Analyse\n\n${result.titel}\n\nPanik: ${result.scores?.panik}/10 · Einseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}`);setCopied(true);setTimeout(()=>setCopied(false),2000);}}
-                    style={{marginLeft:"auto",background:"none",border:"none",color:copied?"#4ade80":T.textFaint,fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",padding:"8px 12px"}}>
+                    style={{marginLeft:"auto",background:"none",border:"none",color:copied?"#4ade80":"var(--text-sub)",fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",padding:"8px 12px"}}>
                     {copied?"Kopiert ✓":"⎙ Teilen"}
                   </button>
                 )}
@@ -421,7 +423,7 @@ export default function App() {
                 analysing
                   ? <div style={{padding:"48px 0",textAlign:"center"}}>
                       <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:16}}>
-                        {STEPS.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<=step?T.accent:T.border2,transition:"background 0.3s",animation:i===step?"pulse 1s infinite":"none"}}/>)}
+                        {STEPS.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<=step?"var(--accent)":T.border2,transition:"background 0.3s",animation:i===step?"pulse 1s infinite":"none"}}/>)}
                       </div>
                       <p style={{fontSize:12,color:T.textLow,fontFamily:"'DM Sans',sans-serif",letterSpacing:1}}>{STEPS[step].toUpperCase()}</p>
                     </div>
@@ -430,9 +432,9 @@ export default function App() {
                       {/* Scores */}
                       <div className="ml-2col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3,marginBottom:20}}>
                         {[["Panik-Niveau",result.scores?.panik],["Einseitigkeit",result.scores?.einseitigkeit],["Emotionalisierung",result.scores?.emotionalisierung],["Faktendichte",11-(result.scores?.faktendichte||5)]].map(([l,v])=>(
-                          <div key={l} style={{background:T.card,padding:"14px 16px",border:`1px solid ${T.border2}`,borderRadius:2}}>
+                          <div key={l} style={{background:"var(--bg-panel)",padding:"14px 16px",border:`1px solid ${T.border2}`,borderRadius:2}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                              <span style={{fontSize:11,color:T.textFaint,fontFamily:"'DM Sans',sans-serif"}}>{l}</span>
+                              <span style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif"}}>{l}</span>
                               <span style={{fontSize:16,fontWeight:600,color:panikColor(v),fontFamily:"'DM Sans',sans-serif"}}>{v}/10</span>
                             </div>
                             <div style={{height:3,background:T.border2,borderRadius:2,overflow:"hidden"}}>
@@ -441,7 +443,7 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:T.card,border:`1px solid ${T.border2}`,borderRadius:2,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:2,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
                         <span style={{fontSize:36,fontWeight:700,color:panikColor(result.scores?.panik),fontFamily:"'DM Sans',sans-serif",lineHeight:1}}>{result.scores?.panik}</span>
                         <div>
                           <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'DM Sans',sans-serif"}}>{panikWord(result.scores?.panik)} Panikniveau</div>
@@ -450,9 +452,9 @@ export default function App() {
                       </div>
                       {result.reisser?.length>0&&(
                         <div>
-                          <div style={{fontSize:9,letterSpacing:2,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>REISSERISCHE FORMULIERUNGEN</div>
+                          <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginBottom:10}}>REISSERISCHE FORMULIERUNGEN</div>
                           {result.reisser.map((r,i)=>(
-                            <div key={i} style={{padding:"8px 14px",background:T.card,borderLeft:"2px solid #f8717133",marginBottom:6,border:`1px solid ${T.border2}`,borderRadius:2}}>
+                            <div key={i} style={{padding:"8px 14px",background:"var(--bg-panel)",borderLeft:"2px solid #f8717133",marginBottom:6,border:`1px solid ${T.border2}`,borderRadius:2}}>
                               <span style={{fontSize:13,color:"#f87171",fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic"}}>„{r}"</span>
                             </div>
                           ))}
@@ -466,18 +468,18 @@ export default function App() {
               {tab==="fakten"&&result&&!result.error&&(
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="fi ml-2col">
                   <div>
-                    <div style={{fontSize:9,letterSpacing:2,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>BELEGBARE FAKTEN</div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>BELEGBARE FAKTEN</div>
                     {result.fakten?.map((f,i)=>(
-                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:T.card,borderLeft:"2px solid #4ade8044",border:`1px solid ${T.border}`,borderRadius:2}}>
+                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #4ade8044",border:"1px solid var(--border)",borderRadius:2}}>
                         <span style={{color:"#4ade80",flexShrink:0,fontSize:12,marginTop:1}}>✓</span>
                         <p style={{fontSize:13,lineHeight:1.6,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{f}</p>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <div style={{fontSize:9,letterSpacing:2,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>MEINUNGEN ALS FAKTEN</div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginBottom:12}}>MEINUNGEN ALS FAKTEN</div>
                     {result.meinungen?.map((m,i)=>(
-                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:T.card,borderLeft:"2px solid #fbbf2444",border:`1px solid ${T.border}`,borderRadius:2}}>
+                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #fbbf2444",border:"1px solid var(--border)",borderRadius:2}}>
                         <span style={{color:"#fbbf24",flexShrink:0,fontSize:12,marginTop:1}}>⚠</span>
                         <p style={{fontSize:13,lineHeight:1.6,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{m}</p>
                       </div>
@@ -489,28 +491,28 @@ export default function App() {
               {/* ── FEHLT ── */}
               {tab==="fehlt"&&result&&!result.error&&(
                 <div className="fi">
-                  <div style={{fontSize:9,letterSpacing:2,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginBottom:16}}>FEHLENDE PERSPEKTIVEN & OFFENE FRAGEN</div>
+                  <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginBottom:16}}>FEHLENDE PERSPEKTIVEN & OFFENE FRAGEN</div>
                   {result.fehlt?.map((f,i)=>(
-                    <div key={i} style={{display:"flex",gap:12,marginBottom:8,padding:"12px 14px",background:T.card,alignItems:"flex-start",border:`1px solid ${T.border}`,borderRadius:2}}>
+                    <div key={i} style={{display:"flex",gap:12,marginBottom:8,padding:"12px 14px",background:"var(--bg-panel)",alignItems:"flex-start",border:"1px solid var(--border)",borderRadius:2}}>
                       <div style={{width:18,height:18,borderRadius:"50%",background:"#1e3a8a",color:"#93c5fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontFamily:"'DM Sans',sans-serif",fontWeight:700,flexShrink:0,marginTop:1}}>?</div>
                       <p style={{fontSize:13,lineHeight:1.6,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{f}</p>
                     </div>
                   ))}
-                  <p style={{fontSize:11,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginTop:14,lineHeight:1.6}}>Suche nach diesen Aspekten in weiteren Quellen, um dir ein vollständiges Bild zu machen.</p>
+                  <p style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginTop:14,lineHeight:1.6}}>Suche nach diesen Aspekten in weiteren Quellen, um dir ein vollständiges Bild zu machen.</p>
                 </div>
               )}
 
               {/* ── SACHBERICHT ── */}
               {tab==="sach"&&result&&!result.error&&(
                 <div className="fi">
-                  <div style={{fontSize:9,letterSpacing:2,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginBottom:14}}>KI-SACHBERICHT · NUR FAKTEN · OHNE WERTUNG</div>
+                  <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginBottom:14}}>KI-SACHBERICHT · NUR FAKTEN · OHNE WERTUNG</div>
                   <h3 style={{fontSize:20,fontWeight:500,color:T.textHigh,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.3,marginBottom:16}}>{result.sachTitel}</h3>
                   <div style={{borderLeft:`2px solid ${T.border2}`,paddingLeft:16}}>
                     {result.sach?.split("\n\n").map((p,i)=>(
                       <p key={i} style={{fontSize:15,lineHeight:1.9,color:T.textBody,margin:"0 0 14px",fontFamily:"'EB Garamond',Georgia,serif"}}>{p}</p>
                     ))}
                   </div>
-                  <p style={{fontSize:10,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",marginTop:16}}>KI-generiert auf Basis des eingegebenen Artikels. Ersetzt keine eigenständige Recherche.</p>
+                  <p style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginTop:16}}>KI-generiert auf Basis des eingegebenen Artikels. Ersetzt keine eigenständige Recherche.</p>
                 </div>
               )}
 
@@ -519,7 +521,7 @@ export default function App() {
               {/* Show placeholder in analyse tab while not yet analysed */}
               {tab==="analyse"&&!result&&!analysing&&(
                 <div style={{padding:"48px 0",textAlign:"center"}}>
-                  <p style={{fontSize:12,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",letterSpacing:1}}>ANALYSE WIRD GELADEN…</p>
+                  <p style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",letterSpacing:1}}>ANALYSE WIRD GELADEN…</p>
                 </div>
               )}
             </div>
@@ -528,20 +530,20 @@ export default function App() {
           {/* Empty state */}
           {!sel&&!manual&&(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:400,gap:12}}>
-              <div style={{width:40,height:40,borderRadius:"50%",border:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"center",color:T.textFaint,fontSize:18}}>◎</div>
-              <p style={{fontSize:13,color:T.textFaint,fontFamily:"'DM Sans',sans-serif",textAlign:"center",lineHeight:1.6}}>Story links auswählen<br/><span style={{fontSize:11,color:T.border2}}>KI-Analyse startet automatisch</span></p>
+              <div style={{width:40,height:40,borderRadius:"50%",border:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-sub)",fontSize:18}}>◎</div>
+              <p style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",textAlign:"center",lineHeight:1.6}}>Story links auswählen<br/><span style={{fontSize:11,color:T.border2}}>KI-Analyse startet automatisch</span></p>
             </div>
           )}
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,background:T.nav}}>
+      <div style={{borderTop:"1px solid var(--border)",padding:"14px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,background:"var(--nav-bg)"}}>
         <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
           {Object.entries(BIAS).map(([k,v])=>(
             <div key={k} style={{display:"flex",alignItems:"center",gap:4}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:v.dot}}/>
-              <span style={{fontSize:10,color:T.textFaint,fontFamily:"'DM Sans',sans-serif"}}>{v.label}</span>
+              <span style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif"}}>{v.label}</span>
             </div>
           ))}
         </div>
