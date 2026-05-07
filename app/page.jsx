@@ -86,6 +86,7 @@ export default function App() {
   const [manualTxt, setManualTxt] = useState("");
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(true);
+  const [cache,     setCache]     = useState({});
   const panelRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
@@ -114,8 +115,11 @@ export default function App() {
   }
 
   function pick(g){
-    setSel(g);setResult(null);setTab("headlines");setManual(false);
-    const txt=`${g[0].title}\n\n${g[0].body}`;
+    setSel(g);setTab("headlines");setManual(false);
+    const title=g[0].title;
+    if(cache[title]){setResult(cache[title]);setTab("analyse");setTimeout(()=>panelRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),80);return;}
+    setResult(null);
+    const txt=`${title}\n\n${g[0].body}`;
     analyse(txt,g);
     setTimeout(()=>panelRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),80);
   }
@@ -134,6 +138,7 @@ export default function App() {
       if(!match)throw new Error("Kein JSON");
       const p=JSON.parse(match[0]);
       clearInterval(iv);setResult(p);setTab("analyse");
+      if(g)setCache(prev=>({...prev,[g[0].title]:p}));
       setHistory(h=>[{title:p.titel,panik:p.scores?.panik,g,result:p,ts:Date.now()},...h].slice(0,15));
     }catch{clearInterval(iv);setResult({error:true});}
     finally{setAnalysing(false);}
