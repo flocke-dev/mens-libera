@@ -87,7 +87,9 @@ export default function App() {
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(true);
   const [cache,     setCache]     = useState({});
+  const [shareOpen, setShareOpen] = useState(false);
   const panelRef = useRef(null);
+  const shareRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
 
@@ -103,6 +105,13 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   },[dark]);
+
+  useEffect(()=>{
+    if(!shareOpen) return;
+    function onOutside(e){if(shareRef.current&&!shareRef.current.contains(e.target))setShareOpen(false);}
+    document.addEventListener('mousedown',onOutside);
+    return()=>document.removeEventListener('mousedown',onOutside);
+  },[shareOpen]);
 
   async function load(){
     setLoading(true);setLoaded(0);const res=[];
@@ -392,12 +401,37 @@ export default function App() {
                     {t.label}
                   </button>
                 ))}
-                {result&&(
-                  <button onClick={()=>{navigator.clipboard.writeText(`Mens Libera Analyse\n\n${result.titel}\n\nPanik: ${result.scores?.panik}/10 · Einseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}`);setCopied(true);setTimeout(()=>setCopied(false),2000);}}
-                    style={{marginLeft:"auto",background:"none",border:"none",color:copied?"#4ade80":"var(--text-sub)",fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",padding:"8px 12px"}}>
-                    {copied?"Kopiert ✓":"⎙ Teilen"}
-                  </button>
-                )}
+                {result&&(()=>{
+                  const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera – Der freie Verstand\nmens-libera.vercel.app`;
+                  const shareUrl="https://mens-libera.vercel.app";
+                  const enc=encodeURIComponent(shareText);
+                  const options=[
+                    {label:"WhatsApp", icon:"💬", action:()=>window.open(`https://wa.me/?text=${enc}`,"_blank")},
+                    {label:"Telegram", icon:"✈️",  action:()=>window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${enc}`,"_blank")},
+                    {label:"Link kopieren", icon:"📋", action:()=>{navigator.clipboard.writeText(shareText);setCopied(true);setTimeout(()=>setCopied(false),2000);setShareOpen(false);}},
+                    ...(typeof navigator!=="undefined"&&navigator.share?[{label:"Teilen…", icon:"📤", action:()=>{navigator.share({title:"Mens Libera Analyse",text:shareText,url:shareUrl});setShareOpen(false);}}]:[]),
+                  ];
+                  return (
+                    <div ref={shareRef} style={{marginLeft:"auto",position:"relative"}}>
+                      <button onClick={()=>setShareOpen(o=>!o)}
+                        style={{background:"none",border:"none",color:shareOpen||copied?"var(--accent)":"var(--text-sub)",fontSize:11,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",padding:"8px 12px",display:"flex",alignItems:"center",gap:4}}>
+                        {copied?"Kopiert ✓":"⎙ Teilen"}
+                      </button>
+                      {shareOpen&&(
+                        <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:6,overflow:"hidden",zIndex:200,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
+                          {options.map(o=>(
+                            <button key={o.label} onClick={o.action}
+                              style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"10px 16px",fontSize:12,fontFamily:"'DM Sans',sans-serif",color:"var(--text)",cursor:"pointer",textAlign:"left",minHeight:44}}
+                              onMouseEnter={e=>e.currentTarget.style.background=T.hoverBg}
+                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                              <span style={{fontSize:16}}>{o.icon}</span>{o.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* ── SCHLAGZEILEN ── */}
