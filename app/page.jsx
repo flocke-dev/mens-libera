@@ -155,7 +155,7 @@ export default function App() {
   const TABS=[{id:"headlines",label:"Schlagzeilen"},{id:"analyse",label:"KI-Analyse"},{id:"fakten",label:"Fakten"},{id:"fehlt",label:"Was fehlt"},{id:"sach",label:"Sachbericht"}];
 
   return (
-    <div style={{background:T.bg,minHeight:"100vh",color:T.text,fontFamily:"'EB Garamond', Georgia, serif"}}>
+    <div className="ml-root" style={{background:T.bg,minHeight:"100vh",color:T.text,fontFamily:"'EB Garamond', Georgia, serif"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -171,16 +171,28 @@ export default function App() {
         input:focus{outline:none;border-color:${T.textFaint} !important;}
         textarea:focus{outline:none;}
         @media (max-width:768px){
+          html,body{overflow-x:hidden !important;}
+          .ml-root{overflow-x:hidden !important;max-width:100vw !important;width:100% !important;}
           .ml-nav-row{height:auto !important;flex-wrap:wrap !important;padding:8px 16px !important;gap:6px !important;}
+          .ml-nav-row button{min-height:44px !important;}
           .ml-search{order:3;flex:1 1 100% !important;max-width:100% !important;}
           .ml-nav-spacer{display:none !important;}
           .ml-text-btn{display:none !important;}
-          .ml-cat-strip{height:auto !important;overflow-x:auto !important;flex-wrap:nowrap !important;padding:4px 12px !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+          .ml-cat-strip{height:auto !important;overflow-x:auto !important;flex-wrap:nowrap !important;padding:0 12px !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;overflow-y:hidden !important;}
           .ml-cat-strip::-webkit-scrollbar{display:none;}
-          .ml-grid{grid-template-columns:1fr !important;padding:16px 16px 60px !important;gap:0 !important;}
-          .ml-aside{position:static !important;max-height:none !important;overflow-y:visible !important;padding-right:0 !important;}
-          .ml-panel{padding-left:0 !important;border-left:none !important;border-top:1px solid ${T.border} !important;padding-top:20px !important;margin-top:16px !important;}
+          .ml-cat-btn{min-height:44px !important;padding:10px 14px !important;display:inline-flex !important;align-items:center !important;}
+          .ml-filter-btn{min-height:44px !important;padding:10px 12px !important;display:inline-flex !important;align-items:center !important;}
+          .ml-grid{grid-template-columns:1fr !important;padding:0 16px 60px !important;gap:0 !important;overflow-x:hidden !important;}
+          .ml-aside{position:static !important;max-height:none !important;overflow-y:visible !important;padding-right:0 !important;overflow-x:hidden !important;}
+          .ml-panel{padding-left:0 !important;border-left:none !important;border-top:1px solid ${T.border} !important;padding-top:20px !important;margin-top:16px !important;overflow-x:hidden !important;}
           .ml-2col{grid-template-columns:1fr !important;}
+          .ml-tabs{overflow-x:auto !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+          .ml-tabs::-webkit-scrollbar{display:none;}
+          .ml-tabs button{min-height:44px !important;padding:8px 12px !important;white-space:nowrap !important;}
+          .row{padding:16px 0 !important;}
+          .row-title{font-size:16px !important;line-height:1.5 !important;word-break:break-word !important;}
+          .row span{font-size:12px !important;}
+          .ml-panel p{font-size:15px !important;line-height:1.7 !important;word-break:break-word !important;}
         }
       `}</style>
 
@@ -230,13 +242,13 @@ export default function App() {
         {/* Category + Bias strip */}
         <div className="ml-cat-strip" style={{borderTop:`1px solid ${T.border}`,maxWidth:1320,margin:"0 auto",padding:"0 24px",height:38,display:"flex",alignItems:"center",gap:2}}>
           {CATS.map(c=>(
-            <button key={c.id} onClick={()=>setCat(c.id)} style={{background:"none",border:"none",color:cat===c.id?T.textHigh:T.textFaint,padding:"4px 12px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:cat===c.id?600:400,cursor:"pointer",borderBottom:`2px solid ${cat===c.id?T.accent:"transparent"}`,transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            <button key={c.id} onClick={()=>setCat(c.id)} className="ml-cat-btn" style={{background:"none",border:"none",color:cat===c.id?T.textHigh:T.textFaint,padding:"4px 12px",fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:cat===c.id?600:400,cursor:"pointer",borderBottom:`2px solid ${cat===c.id?T.accent:"transparent"}`,transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {c.label}
             </button>
           ))}
           <div style={{width:1,height:16,background:T.border2,margin:"0 8px"}}/>
           {[{id:"alle",label:"Alle Quellen"},{id:"links",label:"Links"},{id:"rechts",label:"Rechts"},{id:"alternativ",label:"Alternativ"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
-            <button key={f.id} onClick={()=>setBias(f.id)} style={{background:"none",border:"none",color:bias===f.id?T.accent:T.textFaint,padding:"4px 10px",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            <button key={f.id} onClick={()=>setBias(f.id)} className="ml-filter-btn" style={{background:"none",border:"none",color:bias===f.id?T.accent:T.textFaint,padding:"4px 10px",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {f.label}
             </button>
           ))}
@@ -348,7 +360,7 @@ export default function App() {
               </div>
 
               {/* Tabs */}
-              <div style={{display:"flex",gap:0,borderBottom:`1px solid ${T.border2}`,marginBottom:24}}>
+              <div className="ml-tabs" style={{display:"flex",gap:0,borderBottom:`1px solid ${T.border2}`,marginBottom:24}}>
                 {TABS.map(t=>(
                   <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?T.accent:"transparent"}`,marginBottom:-1,padding:"8px 16px",fontSize:12,fontFamily:"'DM Sans',sans-serif",color:tab===t.id?T.textHigh:T.textFaint,cursor:"pointer",fontWeight:tab===t.id?500:400,transition:"all 0.15s",whiteSpace:"nowrap"}}>
                     {t.label}
