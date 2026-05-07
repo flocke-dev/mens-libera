@@ -177,6 +177,9 @@ export default function App() {
         input::placeholder{color:var(--text-sub);}
         input:focus{outline:none;border-color:var(--text-sub) !important;}
         textarea:focus{outline:none;}
+        .tooltip{position:relative;display:inline-flex;align-items:center;}
+        .tooltip:hover .tooltip-text,.tooltip:focus-within .tooltip-text{display:block;}
+        .tooltip-text{display:none;position:absolute;top:18px;left:0;background:#12101a;border:1px solid #2a2535;padding:8px 12px;font-size:11px;line-height:1.5;width:200px;z-index:100;border-radius:3px;color:#e8e4d9;font-family:'DM Sans',sans-serif;pointer-events:none;}
         @media (max-width:768px){
           html,body{overflow-x:hidden !important;}
           .ml-root{overflow-x:hidden !important;max-width:100vw !important;width:100% !important;}
@@ -300,7 +303,13 @@ export default function App() {
                       <div key={s.id} title={`${s.label} · ${BIAS[s.bias].label}`} style={{width:6,height:6,borderRadius:"50%",background:BIAS[s.bias].dot,opacity:0.8}}/>
                     ))}
                   </div>
-                  {isBlindspot&&<span style={{fontSize:9,color:"#f87171",fontFamily:"'DM Sans',sans-serif",letterSpacing:0.5}}>BLINDSPOT</span>}
+                  {isBlindspot&&(
+                    <span className="tooltip" style={{fontSize:9,color:"#f87171",fontFamily:"'DM Sans',sans-serif",letterSpacing:0.5,gap:3}}>
+                      BLINDSPOT
+                      <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:11,height:11,borderRadius:"50%",border:"1px solid #f8717166",fontSize:8,lineHeight:1,cursor:"default",marginLeft:2}}>?</span>
+                      <span className="tooltip-text">Diese Story wird nur von einer politischen Seite berichtet – die andere Seite schweigt.</span>
+                    </span>
+                  )}
                   <span style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'DM Sans',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
                 </div>
                 <p className="row-title" style={{fontSize:14,lineHeight:1.5,color:isSelected?T.textHigh:T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:500,marginBottom:6,transition:"color 0.15s"}}>
