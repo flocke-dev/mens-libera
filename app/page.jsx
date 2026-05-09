@@ -112,6 +112,7 @@ export default function App() {
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(false);
   const [cache,          setCache]          = useState({});
+  const [read,            setRead]            = useState(new Set());
   const [showShareModal,  setShowShareModal]  = useState(false);
   const [showOnboarding,  setShowOnboarding]  = useState(false);
   const [onboardingStep,  setOnboardingStep]  = useState(0);
@@ -181,7 +182,7 @@ export default function App() {
       if(!match)throw new Error("Kein JSON");
       const p=JSON.parse(match[0]);
       clearInterval(iv);setResult(p);setTab("analyse");
-      if(g)setCache(prev=>({...prev,[g[0].title]:p}));
+      if(g){setCache(prev=>({...prev,[g[0].title]:p}));setRead(prev=>new Set([...prev,g[0].title]));}
       setHistory(h=>[{title:p.titel,panik:p.scores?.panik,g,result:p,ts:Date.now()},...h].slice(0,15));
     }catch{clearInterval(iv);setResult({error:true});}
     finally{setAnalysing(false);}
@@ -312,6 +313,7 @@ export default function App() {
             </button>
           ))}
           <div style={{flex:1}}/>
+          {read.size>0&&<span style={{fontSize:11,color:"var(--accent)",fontFamily:"'Inter',sans-serif",marginRight:8}}>{read.size} von {filtered.length} analysiert</span>}
           <span style={{fontSize:11,color:T.border2,fontFamily:"'Inter',sans-serif"}}>{filtered.length} Storys</span>
         </div>
       </nav>
@@ -342,10 +344,11 @@ export default function App() {
           {!loading&&filtered.slice(0,80).map((g,i)=>{
             const srcs=srcsOf(g);
             const isSelected=sel&&sel[0].title===g[0].title;
+            const isRead=read.has(g[0].title);
             const scores=srcs.map(s=>s.biasScore);
             const isBlindspot=srcs.length>=2&&(scores.every(x=>x<0)||scores.every(x=>x>0));
             return (
-              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s",paddingLeft:isSelected?10:0,borderLeft:isSelected?"2px solid var(--accent)":"2px solid transparent",marginLeft:-2}}>
+              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s",paddingLeft:isSelected?10:0,borderLeft:isSelected?"2px solid var(--accent)":"2px solid transparent",marginLeft:-2,opacity:isRead&&!isSelected?0.7:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
                   <div style={{display:"flex",gap:3}}>
                     {srcs.map(s=>(
@@ -361,9 +364,12 @@ export default function App() {
                   )}
                   <span style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
                 </div>
-                <p className="row-title" style={{fontSize:17,lineHeight:1.6,color:isSelected?T.textHigh:T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,marginBottom:6,transition:"color 0.15s"}}>
-                  {g[0].title}
-                </p>
+                <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
+                  <p className="row-title" style={{fontSize:17,lineHeight:1.6,color:isSelected?T.textHigh:isRead?"var(--text-sub)":T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,margin:0,transition:"color 0.15s"}}>
+                    {g[0].title}
+                  </p>
+                  {isRead&&<span style={{color:"#4ade80",fontSize:11,fontFamily:"'Inter',sans-serif",flexShrink:0}}>✓ Analysiert</span>}
+                </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
                     <span key={s.id} style={{fontSize:13,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.7}}>
