@@ -112,7 +112,10 @@ export default function App() {
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(false);
   const [cache,          setCache]          = useState({});
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareModal,  setShowShareModal]  = useState(false);
+  const [showOnboarding,  setShowOnboarding]  = useState(false);
+  const [onboardingStep,  setOnboardingStep]  = useState(0);
+  const [onboardingSkip,  setOnboardingSkip]  = useState(false);
   const panelRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
@@ -123,6 +126,16 @@ export default function App() {
     setDark(saved === 'dark');
     load();
   },[]);
+
+  useEffect(()=>{
+    const seen = localStorage.getItem('ml-onboarding');
+    if(!seen) setShowOnboarding(true);
+  },[]);
+
+  function closeOnboarding(){
+    if(onboardingSkip) localStorage.setItem('ml-onboarding','true');
+    setShowOnboarding(false);
+  }
 
   useEffect(()=>{
     const theme = dark ? 'dark' : 'light';
@@ -776,6 +789,67 @@ export default function App() {
                 style={{marginTop:16,width:"100%",background:"var(--accent)",color:"#0b0b12",border:"none",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
                 Schließen
               </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── ONBOARDING MODAL ── */}
+      {showOnboarding&&(()=>{
+        const steps=[
+          {icon:"⚖️",title:"Bias erkennen",text:"Jede Story zeigt farbige Punkte – von Blau (Links) bis Rot (Rechts). So siehst du sofort welche Seite berichtet."},
+          {icon:"🔴",title:"Blindspot entdecken",text:"Wenn nur eine politische Seite über eine Story berichtet, warnen wir dich. Die andere Seite schweigt bewusst."},
+          {icon:"🔍",title:"KI-Analyse",text:"Klicke auf eine Story – die KI analysiert sofort Panikniveau, Framing und was im Artikel fehlt."},
+        ];
+        const s=steps[onboardingStep];
+        const isLast=onboardingStep===steps.length-1;
+        return (
+          <div onClick={closeOnboarding}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:32,width:"100%",maxWidth:420,borderRadius:4}}>
+
+              {/* Progress dots */}
+              <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:28}}>
+                {steps.map((_,i)=>(
+                  <div key={i} style={{width:8,height:8,borderRadius:"50%",background:i===onboardingStep?"var(--accent)":"var(--border)",transition:"background 0.2s"}}/>
+                ))}
+              </div>
+
+              {/* Content */}
+              <div style={{textAlign:"center",marginBottom:32}}>
+                <div style={{fontSize:48,marginBottom:16,lineHeight:1}}>{s.icon}</div>
+                <div style={{fontSize:18,fontWeight:600,color:"var(--text)",fontFamily:"'EB Garamond',Georgia,serif",marginBottom:12}}>{s.title}</div>
+                <p style={{fontSize:15,lineHeight:1.8,color:"var(--text-sub)",fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{s.text}</p>
+              </div>
+
+              {/* Navigation */}
+              <div style={{display:"flex",gap:8,marginBottom:20}}>
+                {onboardingStep>0&&(
+                  <button onClick={()=>setOnboardingStep(s=>s-1)}
+                    style={{flex:1,background:"none",border:"1px solid var(--border)",color:"var(--text-sub)",padding:"10px 0",fontSize:13,fontFamily:"Inter",cursor:"pointer",borderRadius:3}}>
+                    ← Zurück
+                  </button>
+                )}
+                {!isLast?(
+                  <button onClick={()=>setOnboardingStep(s=>s+1)}
+                    style={{flex:1,background:"var(--accent)",border:"none",color:"#0b0b12",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                    Weiter →
+                  </button>
+                ):(
+                  <button onClick={closeOnboarding}
+                    style={{flex:1,background:"var(--accent)",border:"none",color:"#0b0b12",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                    Loslegen →
+                  </button>
+                )}
+              </div>
+
+              {/* "Nicht mehr anzeigen" */}
+              <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",fontSize:12,color:"var(--text-sub)",fontFamily:"Inter"}}>
+                <input type="checkbox" checked={onboardingSkip} onChange={e=>setOnboardingSkip(e.target.checked)}
+                  style={{accentColor:"var(--accent)",cursor:"pointer"}}/>
+                Nicht mehr anzeigen
+              </label>
             </div>
           </div>
         );
