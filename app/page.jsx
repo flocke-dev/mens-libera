@@ -97,9 +97,10 @@ export default function App() {
   const [q,         setQ]         = useState("");
   const [sel,       setSel]       = useState(null);
   const [analysing, setAnalysing] = useState(false);
-  const [result,    setResult]    = useState(null);
-  const [step,      setStep]      = useState(0);
-  const [tab,       setTab]       = useState("headlines");
+  const [result,      setResult]      = useState(null);
+  const [step,        setStep]        = useState(0);
+  const [tab,         setTab]         = useState("headlines");
+  const [showOriginal,setShowOriginal]= useState(false);
   const [history,   setHistory]   = useState([]);
   const [manual,      setManual]      = useState(false);
   const [manualTxt,   setManualTxt]   = useState("");
@@ -159,10 +160,10 @@ export default function App() {
 
   async function analyse(txt,g){
     if(!txt||txt.length<60)return;
-    setAnalysing(true);setResult(null);let s=0;setStep(0);
+    setAnalysing(true);setResult(null);setShowOriginal(false);let s=0;setStep(0);
     const iv=setInterval(()=>{s=Math.min(s+1,3);setStep(s);},1000);
     try{
-      const promptText=`Analysiere diesen deutschsprachigen Nachrichtenartikel objektiv.\n\nARTIKEL:\n${txt.slice(0,3000)}\n\nAntworte NUR als JSON ohne Backticks:\n{"titel":"<max 70 Zeichen>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 belegbare Fakten>],"meinungen":[<3-4 verkleidete Meinungen>],"fehlt":[<3-4 fehlende Perspektiven>],"reisser":[<2-3 reißerische Zitate>],"urteil":"<2 Sätze>","sachTitel":"<sachlicher Titel>","sach":"<180-220 Wörter sachlicher Bericht, Absätze durch \\n\\n>"}`;
+      const promptText=`Analysiere diesen Nachrichtenartikel objektiv.\n\nSCHRITT 1 – SPRACHE: Erkenne die Originalsprache.\nSCHRITT 2 – ÜBERSETZUNG: Falls der Artikel NICHT auf Deutsch ist, übersetze ihn vollständig ins Deutsche und analysiere dann den übersetzten Text.\n\nARTIKEL:\n${txt.slice(0,3000)}\n\nAntworte NUR als JSON ohne Backticks:\n{"sprache":"<erkannte Sprache, z.B. Deutsch, Englisch, Französisch, Arabisch>","uebersetzung":<null falls Deutsch, sonst vollständige deutsche Übersetzung als String>,"titel":"<max 70 Zeichen>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 belegbare Fakten>],"meinungen":[<3-4 verkleidete Meinungen>],"fehlt":[<3-4 fehlende Perspektiven>],"reisser":[<2-3 reißerische Zitate>],"urteil":"<2 Sätze>","sachTitel":"<sachlicher Titel>","sach":"<180-220 Wörter sachlicher Bericht, Absätze durch \\n\\n>"}`;
       const res=await fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({messages:[{role:"user",content:promptText}]})});
       const d=await res.json();
@@ -481,6 +482,14 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Language banner */}
+              {result&&result.sprache&&result.sprache!=="Deutsch"&&(
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",marginBottom:16,background:"rgba(200,169,110,0.08)",border:"1px solid rgba(200,169,110,0.3)",borderRadius:4,fontSize:13,color:"#c8a96e",fontFamily:"'Inter',sans-serif"}}>
+                  <span>🌍</span>
+                  <span>Originalsprache: <strong>{result.sprache}</strong> · Automatisch übersetzt</span>
+                </div>
+              )}
+
               {/* Tabs */}
               <div className="ml-tabs" style={{display:"flex",gap:0,borderBottom:`1px solid ${T.border2}`,marginBottom:24}}>
                 {TABS.map(t=>(
@@ -650,13 +659,34 @@ export default function App() {
               {/* ── SACHBERICHT ── */}
               {tab==="sach"&&result&&!result.error&&(
                 <div className="fi">
-                  <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:14}}>KI-SACHBERICHT · NUR FAKTEN · OHNE WERTUNG</div>
-                  <h3 style={{fontSize:20,fontWeight:500,color:T.textHigh,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.3,marginBottom:16}}>{result.sachTitel}</h3>
-                  <div style={{borderLeft:`2px solid ${T.border2}`,paddingLeft:16}}>
-                    {result.sach?.split("\n\n").map((p,i)=>(
-                      <p key={i} style={{fontSize:17,lineHeight:1.9,color:T.textBody,margin:"0 0 14px",fontFamily:"'EB Garamond',Georgia,serif"}}>{p}</p>
-                    ))}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>KI-SACHBERICHT · NUR FAKTEN · OHNE WERTUNG</div>
+                    {result.uebersetzung&&(
+                      <button onClick={()=>setShowOriginal(o=>!o)}
+                        style={{background:"none",border:`1px solid rgba(200,169,110,0.4)`,color:"#c8a96e",fontSize:11,fontFamily:"'Inter',sans-serif",padding:"4px 10px",borderRadius:3,cursor:"pointer",whiteSpace:"nowrap"}}>
+                        {showOriginal?"Sachbericht anzeigen":"Original anzeigen"}
+                      </button>
+                    )}
                   </div>
+                  {showOriginal&&result.uebersetzung?(
+                    <>
+                      <div style={{fontSize:9,letterSpacing:2,color:"#c8a96e",fontFamily:"'Inter',sans-serif",marginBottom:12}}>DEUTSCHE ÜBERSETZUNG · ORIGINALTEXT</div>
+                      <div style={{borderLeft:`2px solid rgba(200,169,110,0.3)`,paddingLeft:16}}>
+                        {result.uebersetzung.split("\n\n").map((p,i)=>(
+                          <p key={i} style={{fontSize:17,lineHeight:1.9,color:T.textBody,margin:"0 0 14px",fontFamily:"'EB Garamond',Georgia,serif"}}>{p}</p>
+                        ))}
+                      </div>
+                    </>
+                  ):(
+                    <>
+                      <h3 style={{fontSize:20,fontWeight:500,color:T.textHigh,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.3,marginBottom:16}}>{result.sachTitel}</h3>
+                      <div style={{borderLeft:`2px solid ${T.border2}`,paddingLeft:16}}>
+                        {result.sach?.split("\n\n").map((p,i)=>(
+                          <p key={i} style={{fontSize:17,lineHeight:1.9,color:T.textBody,margin:"0 0 14px",fontFamily:"'EB Garamond',Georgia,serif"}}>{p}</p>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   <p style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:16}}>KI-generiert auf Basis des eingegebenen Artikels. Ersetzt keine eigenständige Recherche.</p>
                 </div>
               )}
