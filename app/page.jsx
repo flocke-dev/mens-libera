@@ -20,6 +20,25 @@ const SOURCES = [
   { id:"tichys",        label:"Tichys Einblick", bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://www.tichyseinblick.de/feed/" },
   { id:"jf",            label:"Junge Freiheit",  bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://jungefreiheit.de/feed/" },
   { id:"epochtimes",    label:"Epoch Times",     bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://www.epochtimes.de/feed/" },
+
+  // Österreich
+  { id:"orf",       label:"ORF",          bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://rss.orf.at/news.xml" },
+  { id:"diepresse", label:"Die Presse",   bias:"mitte-rechts",     biasScore:1,  credibility:"hoch",    url:"https://www.diepresse.com/rss" },
+  { id:"krone",     label:"Krone",        bias:"rechts",           biasScore:2,  credibility:"mittel",  url:"https://www.krone.at/rss" },
+  { id:"kurier",    label:"Kurier",       bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://kurier.at/xml/rssd" },
+
+  // Schweiz
+  { id:"srf",       label:"SRF",          bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://www.srf.ch/news/rss" },
+  { id:"20min",     label:"20 Minuten",   bias:"mitte",            biasScore:0,  credibility:"mittel",  url:"https://www.20min.ch/rss/rss.tmpl" },
+
+  // International
+  { id:"bbc",       label:"BBC",          bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://feeds.bbci.co.uk/news/rss.xml" },
+  { id:"guardian",  label:"Guardian",     bias:"links",            biasScore:-2, credibility:"hoch",    url:"https://www.theguardian.com/world/rss" },
+  { id:"reuters",   label:"Reuters",      bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://feeds.reuters.com/reuters/topNews" },
+  { id:"aljazeera", label:"Al Jazeera",   bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://www.aljazeera.com/xml/rss/all.xml" },
+  { id:"foxnews",   label:"Fox News",     bias:"rechts",           biasScore:2,  credibility:"mittel",  url:"https://feeds.foxnews.com/foxnews/latest" },
+  { id:"nyt",       label:"NY Times",     bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+  { id:"rt",        label:"RT Deutsch",   bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://deutsch.rt.com/feeds/rt-deutsch-news.xml" },
 ];
 
 const BIAS = {
