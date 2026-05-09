@@ -101,8 +101,13 @@ export default function App() {
   const [step,      setStep]      = useState(0);
   const [tab,       setTab]       = useState("headlines");
   const [history,   setHistory]   = useState([]);
-  const [manual,    setManual]    = useState(false);
-  const [manualTxt, setManualTxt] = useState("");
+  const [manual,      setManual]      = useState(false);
+  const [manualTxt,   setManualTxt]   = useState("");
+  const [manualTab,   setManualTab]   = useState("text");
+  const [urlInput,    setUrlInput]    = useState("");
+  const [urlFetching, setUrlFetching] = useState(false);
+  const [urlPreview,  setUrlPreview]  = useState(null);
+  const [urlError,    setUrlError]    = useState(null);
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(true);
   const [cache,     setCache]     = useState({});
@@ -374,15 +379,78 @@ export default function App() {
             <div className="fi">
               <div style={{marginBottom:20}}>
                 <div style={{fontSize:11,letterSpacing:2,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:12}}>EIGENEN TEXT ANALYSIEREN</div>
-                <textarea value={manualTxt} onChange={e=>setManualTxt(e.target.value)} rows={8}
-                  style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"14px 16px",fontSize:14,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",resize:"vertical",outline:"none",borderRadius:4}}
-                  placeholder="Artikel hier einfügen…"/>
-                <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
-                  <button onClick={()=>analyse(manualTxt,null)} disabled={analysing||manualTxt.length<80}
-                    style={{background:analysing||manualTxt.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||manualTxt.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
-                    {analysing?"Analysiere…":"Analysieren →"}
-                  </button>
+
+                {/* Tabs */}
+                <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${T.border2}`}}>
+                  {[{id:"text",label:"Text einfügen"},{id:"url",label:"URL eingeben"}].map(t=>(
+                    <button key={t.id} onClick={()=>{setManualTab(t.id);setUrlPreview(null);setUrlError(null);}}
+                      style={{background:"none",border:"none",borderBottom:manualTab===t.id?"2px solid var(--accent)":"2px solid transparent",color:manualTab===t.id?"var(--accent)":T.textMid,padding:"8px 14px",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:"pointer",marginBottom:-1,transition:"color 0.15s"}}>
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
+
+                {/* Text tab */}
+                {manualTab==="text"&&(
+                  <>
+                    <textarea value={manualTxt} onChange={e=>setManualTxt(e.target.value)} rows={8}
+                      style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"14px 16px",fontSize:14,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",resize:"vertical",outline:"none",borderRadius:4}}
+                      placeholder="Artikel hier einfügen…"/>
+                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
+                      <button onClick={()=>analyse(manualTxt,null)} disabled={analysing||manualTxt.length<80}
+                        style={{background:analysing||manualTxt.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||manualTxt.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
+                        {analysing?"Analysiere…":"Analysieren →"}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* URL tab */}
+                {manualTab==="url"&&(
+                  <>
+                    <div style={{display:"flex",gap:8,marginBottom:12}}>
+                      <input value={urlInput} onChange={e=>{setUrlInput(e.target.value);setUrlPreview(null);setUrlError(null);}}
+                        onKeyDown={e=>{if(e.key==="Enter"&&urlInput.trim()&&!urlFetching){setUrlFetching(true);setUrlPreview(null);setUrlError(null);fetch("/api/fetch-article",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:urlInput.trim()})}).then(r=>r.json()).then(d=>{if(d.error)setUrlError(d.error);else setUrlPreview(d);}).catch(e=>setUrlError(e.message)).finally(()=>setUrlFetching(false));}}}
+                        style={{flex:1,background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"10px 14px",fontSize:14,fontFamily:"'Inter',sans-serif",borderRadius:4,outline:"none"}}
+                        placeholder="https://…"/>
+                      <button onClick={async()=>{
+                          setUrlFetching(true);setUrlPreview(null);setUrlError(null);
+                          try{
+                            const r=await fetch("/api/fetch-article",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:urlInput.trim()})});
+                            const d=await r.json();
+                            if(d.error)setUrlError(d.error);
+                            else setUrlPreview(d);
+                          }catch(e){setUrlError(e.message);}
+                          finally{setUrlFetching(false);}
+                        }}
+                        disabled={urlFetching||!urlInput.trim()}
+                        style={{background:urlFetching||!urlInput.trim()?"var(--bg-panel)":"var(--accent)",color:urlFetching||!urlInput.trim()?"var(--text-sub)":"var(--bg)",border:"none",padding:"10px 18px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer",whiteSpace:"nowrap"}}>
+                        {urlFetching?(
+                          <><span style={{width:10,height:10,border:"1.5px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite",marginRight:6}}/> Lädt…</>
+                        ):"Artikel laden"}
+                      </button>
+                    </div>
+
+                    {urlError&&(
+                      <div style={{color:"#f87171",fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Fehler: {urlError}</div>
+                    )}
+
+                    {urlPreview&&(
+                      <div style={{background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,padding:"14px 16px",marginBottom:12}}>
+                        <div style={{fontSize:15,fontWeight:600,color:T.textHigh,fontFamily:"'EB Garamond',Georgia,serif",marginBottom:8,lineHeight:1.4}}>{urlPreview.title}</div>
+                        <div style={{fontSize:13,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.7}}>
+                          {urlPreview.text.slice(0,200)}{urlPreview.text.length>200?"…":""}
+                        </div>
+                        <div style={{display:"flex",justifyContent:"flex-end",marginTop:12}}>
+                          <button onClick={()=>analyse((urlPreview.title+"\n\n"+urlPreview.text),null)} disabled={analysing||urlPreview.text.length<80}
+                            style={{background:analysing||urlPreview.text.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||urlPreview.text.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
+                            {analysing?"Analysiere…":"Analysieren →"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}
