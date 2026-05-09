@@ -113,6 +113,7 @@ export default function App() {
   const [dark,      setDark]      = useState(false);
   const [cache,          setCache]          = useState({});
   const [read,            setRead]            = useState(new Set());
+  const [displayScore,    setDisplayScore]    = useState(0);
   const [showShareModal,  setShowShareModal]  = useState(false);
   const [showOnboarding,  setShowOnboarding]  = useState(false);
   const [onboardingStep,  setOnboardingStep]  = useState(0);
@@ -132,6 +133,14 @@ export default function App() {
     const seen = localStorage.getItem('ml-onboarding');
     if(!seen) setShowOnboarding(true);
   },[]);
+
+  useEffect(()=>{
+    if(!result?.scores?.panik) return;
+    let current=0;
+    const target=result.scores.panik;
+    const iv=setInterval(()=>{current+=1;setDisplayScore(current);if(current>=target)clearInterval(iv);},80);
+    return()=>clearInterval(iv);
+  },[result]);
 
   function closeOnboarding(){
     if(onboardingSkip) localStorage.setItem('ml-onboarding','true');
@@ -592,7 +601,7 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:2,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
-                        <span style={{fontSize:36,fontWeight:700,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{result.scores?.panik}</span>
+                        <span style={{fontSize:36,fontWeight:700,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{displayScore}</span>
                         <div>
                           <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif"}}>{panikWord(result.scores?.panik)} Panikniveau</div>
                           <div style={{fontSize:13,color:T.textMid,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginTop:2}}>{result.urteil}</div>
