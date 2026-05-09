@@ -131,7 +131,6 @@ export default function App() {
   },[dark]);
 
   function handleShare(){
-    const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera\nmens-libera.vercel.app`;
     setShowShareModal(true);
   }
 
@@ -703,36 +702,72 @@ export default function App() {
 
       {/* ── SHARE MODAL ── */}
       {showShareModal&&result&&(()=>{
-        const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera\nmens-libera.vercel.app`;
+        const sc=result.scores||{};
+        const bar=(v=0)=>`${'█'.repeat(v)}${'░'.repeat(10-v)}`;
+        const shareText=`⚖️ MENS LIBERA · Der freie Verstand\n\n📰 ${result.titel}\n\n📊 ANALYSE:\n- Panik-Niveau: ${bar(sc.panik)} ${sc.panik}/10\n- Einseitigkeit: ${bar(sc.einseitigkeit)} ${sc.einseitigkeit}/10\n- Emotionalisierung: ${bar(sc.emotionalisierung)} ${sc.emotionalisierung}/10\n- Faktendichte: ${bar(sc.faktendichte)} ${sc.faktendichte}/10\n\n✅ FAKTEN:\n${result.fakten?.slice(0,3).map(f=>`• ${f}`).join('\n')}\n\n⚠️ MEINUNGEN ALS FAKTEN:\n${result.meinungen?.slice(0,2).map(m=>`• ${m}`).join('\n')}\n\n❓ WAS FEHLT:\n${result.fehlt?.slice(0,2).map(f=>`• ${f}`).join('\n')}\n\n📝 FAZIT:\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera – Der freie Verstand\n🌐 mens-libera.vercel.app`;
+        const enc=encodeURIComponent(shareText);
+        const iconWa=(
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#25D366">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.121 1.533 5.849L.057 23.535a.75.75 0 00.906.919l5.803-1.522A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.713 9.713 0 01-4.953-1.355l-.355-.211-3.683.966.982-3.588-.231-.369A9.713 9.713 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+          </svg>
+        );
+        const iconTg=(
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#229ED9">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.16 13.67l-2.948-.924c-.64-.203-.653-.64.136-.954l11.498-4.43c.534-.194 1.001.131.048.859z"/>
+          </svg>
+        );
+        const iconCopy=(
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+        );
+        const iconShare=(
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        );
+        const rowStyle={display:"flex",alignItems:"center",gap:16,padding:"14px 8px",color:"var(--text)",textDecoration:"none",background:"none",border:"none",cursor:"pointer",width:"100%",borderRadius:4,transition:"background 0.15s"};
+        const logoBox={width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0};
         return (
           <div onClick={()=>setShowShareModal(false)}
             style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <div onClick={e=>e.stopPropagation()}
-              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:300,borderRadius:4}}>
-              <p style={{fontSize:13,fontWeight:600,marginBottom:20,color:"var(--text)",fontFamily:"Inter, sans-serif"}}>Analyse teilen</p>
+              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:320,borderRadius:4}}>
+              <p style={{fontSize:13,fontWeight:600,marginBottom:16,color:"var(--text)",fontFamily:"Inter, sans-serif"}}>Analyse teilen</p>
 
-              <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer"
-                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",color:"var(--text)",textDecoration:"none"}}>
-                <span style={{fontSize:22}}>📱</span>
+              <a href={`https://wa.me/?text=${enc}`} target="_blank" rel="noreferrer"
+                style={rowStyle}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                <div style={logoBox}>{iconWa}</div>
                 <span style={{fontSize:14,fontFamily:"Inter"}}>WhatsApp</span>
               </a>
 
-              <a href={`https://t.me/share/url?url=https://mens-libera.vercel.app&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer"
-                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",color:"var(--text)",textDecoration:"none"}}>
-                <span style={{fontSize:22}}>✈️</span>
+              <a href={`https://t.me/share/url?url=https://mens-libera.vercel.app&text=${enc}`} target="_blank" rel="noreferrer"
+                style={rowStyle}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                <div style={logoBox}>{iconTg}</div>
                 <span style={{fontSize:14,fontFamily:"Inter"}}>Telegram</span>
               </a>
 
               <button onClick={()=>{navigator.clipboard.writeText(shareText);setCopied(true);setTimeout(()=>setCopied(false),2000);}}
-                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",background:"none",border:"none",cursor:"pointer",width:"100%",color:"var(--text)"}}>
-                <span style={{fontSize:22}}>📋</span>
+                style={rowStyle}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                <div style={logoBox}>{iconCopy}</div>
                 <span style={{fontSize:14,fontFamily:"Inter"}}>{copied?"Kopiert ✓":"Text kopieren"}</span>
               </button>
 
               {typeof navigator!=="undefined"&&navigator.share&&(
-                <button onClick={()=>{navigator.share({title:"Mens Libera Analyse",text:shareText,url:"https://mens-libera.vercel.app"});}}
-                  style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",background:"none",border:"none",cursor:"pointer",width:"100%",color:"var(--text)"}}>
-                  <span style={{fontSize:22}}>↗️</span>
+                <button onClick={()=>navigator.share({title:"Mens Libera Analyse",text:shareText,url:"https://mens-libera.vercel.app"})}
+                  style={rowStyle}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                  <div style={logoBox}>{iconShare}</div>
                   <span style={{fontSize:14,fontFamily:"Inter"}}>Mehr Optionen</span>
                 </button>
               )}
