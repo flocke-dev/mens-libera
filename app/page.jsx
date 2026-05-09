@@ -236,7 +236,7 @@ export default function App() {
           .row{padding:16px 0 !important;}
           .row-title{font-size:16px !important;line-height:1.5 !important;word-break:break-word !important;}
           .row span{font-size:12px !important;}
-          .ml-panel p{font-size:15px !important;line-height:1.7 !important;word-break:break-word !important;}
+          .ml-panel p{font-size:15px !important;line-height:1.8 !important;word-break:break-word !important;}
           .ml-back-btn{display:flex !important;}
         }
         .ml-back-btn{display:none;}
@@ -371,7 +371,7 @@ export default function App() {
         </aside>
 
         {/* ── PANEL ── */}
-        <div ref={panelRef} className="ml-panel" style={{paddingLeft:28,borderLeft:"1px solid var(--border)"}}>
+        <div ref={panelRef} className="ml-panel" style={{padding:28,borderLeft:"1px solid var(--border)"}}>
 
           {/* Mobile back button */}
           {(sel||manual)&&(
@@ -561,7 +561,7 @@ export default function App() {
                               </div>
                               {/* Headline */}
                               <div style={{flex:1,padding:"12px 16px",display:"flex",alignItems:"center"}}>
-                                <p style={{fontSize:14,lineHeight:1.5,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>
+                                <p style={{fontSize:15,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>
                                   {words.map((w,wi)=>{
                                     const clean=w.replace(/[^\wäöüß]/g,"").toLowerCase();
                                     const unique=clean.length>4&&!others.some(t=>t.includes(clean));
