@@ -110,7 +110,7 @@ export default function App() {
   const [urlPreview,  setUrlPreview]  = useState(null);
   const [urlError,    setUrlError]    = useState(null);
   const [copied,    setCopied]    = useState(false);
-  const [dark,      setDark]      = useState(true);
+  const [dark,      setDark]      = useState(false);
   const [cache,     setCache]     = useState({});
   const [shareOpen, setShareOpen] = useState(false);
   const panelRef = useRef(null);
@@ -119,7 +119,7 @@ export default function App() {
   const T = dark ? DARK : LIGHT;
 
   useEffect(()=>{
-    const saved = localStorage.getItem('theme') || 'dark';
+    const saved = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
     setDark(saved === 'dark');
     load();
@@ -285,9 +285,7 @@ export default function App() {
           {/* Theme toggle */}
           <button onClick={()=>setDark(d=>!d)} title={dark?"Hell-Modus":"Dunkel-Modus"}
             style={{background:"none",border:`1px solid ${T.border2}`,color:"var(--text-sub)",width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            {dark
-              ? <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-              : <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>}
+            {dark ? "☀️" : "🌙"}
           </button>
         </div>
 
