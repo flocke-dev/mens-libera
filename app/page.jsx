@@ -111,10 +111,9 @@ export default function App() {
   const [urlError,    setUrlError]    = useState(null);
   const [copied,    setCopied]    = useState(false);
   const [dark,      setDark]      = useState(false);
-  const [cache,     setCache]     = useState({});
-  const [shareOpen, setShareOpen] = useState(false);
+  const [cache,          setCache]          = useState({});
+  const [showShareModal, setShowShareModal] = useState(false);
   const panelRef = useRef(null);
-  const shareRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
 
@@ -131,12 +130,10 @@ export default function App() {
     localStorage.setItem('theme', theme);
   },[dark]);
 
-  useEffect(()=>{
-    if(!shareOpen) return;
-    function onOutside(e){if(shareRef.current&&!shareRef.current.contains(e.target))setShareOpen(false);}
-    document.addEventListener('mousedown',onOutside);
-    return()=>document.removeEventListener('mousedown',onOutside);
-  },[shareOpen]);
+  function handleShare(){
+    const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera\nmens-libera.vercel.app`;
+    setShowShareModal(true);
+  }
 
   async function load(){
     setLoading(true);setLoaded(0);const res=[];
@@ -501,37 +498,12 @@ export default function App() {
                     {t.label}
                   </button>
                 ))}
-                {result&&(()=>{
-                  const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera – Der freie Verstand\nmens-libera.vercel.app`;
-                  const shareUrl="https://mens-libera.vercel.app";
-                  const enc=encodeURIComponent(shareText);
-                  const options=[
-                    {label:"WhatsApp", icon:"💬", action:()=>window.open(`https://wa.me/?text=${enc}`,"_blank")},
-                    {label:"Telegram", icon:"✈️",  action:()=>window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${enc}`,"_blank")},
-                    {label:"Link kopieren", icon:"📋", action:()=>{navigator.clipboard.writeText(shareText);setCopied(true);setTimeout(()=>setCopied(false),2000);setShareOpen(false);}},
-                    ...(typeof navigator!=="undefined"&&navigator.share?[{label:"Teilen…", icon:"📤", action:()=>{navigator.share({title:"Mens Libera Analyse",text:shareText,url:shareUrl});setShareOpen(false);}}]:[]),
-                  ];
-                  return (
-                    <div ref={shareRef} style={{marginLeft:"auto",position:"relative"}}>
-                      <button onClick={()=>setShareOpen(o=>!o)}
-                        style={{background:"none",border:"none",color:shareOpen||copied?"var(--accent)":"var(--text-sub)",fontSize:11,fontFamily:"'Inter',sans-serif",cursor:"pointer",padding:"8px 12px",display:"flex",alignItems:"center",gap:4}}>
-                        {copied?"Kopiert ✓":"⎙ Teilen"}
-                      </button>
-                      {shareOpen&&(
-                        <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:6,overflow:"hidden",zIndex:200,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
-                          {options.map(o=>(
-                            <button key={o.label} onClick={o.action}
-                              style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"none",border:"none",padding:"10px 16px",fontSize:12,fontFamily:"'Inter',sans-serif",color:"var(--text)",cursor:"pointer",textAlign:"left",minHeight:44}}
-                              onMouseEnter={e=>e.currentTarget.style.background=T.hoverBg}
-                              onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                              <span style={{fontSize:16}}>{o.icon}</span>{o.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                {result&&(
+                  <button onClick={handleShare}
+                    style={{marginLeft:"auto",background:"none",border:"none",color:copied?"var(--accent)":"var(--text-sub)",fontSize:11,fontFamily:"'Inter',sans-serif",cursor:"pointer",padding:"8px 12px",display:"flex",alignItems:"center",gap:4}}>
+                    {copied?"Kopiert ✓":"⎙ Teilen"}
+                  </button>
+                )}
               </div>
 
               {/* ── SCHLAGZEILEN ── */}
@@ -728,6 +700,51 @@ export default function App() {
         </div>
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · Der freie Verstand · Nur Prototyp</span>
       </div>
+
+      {/* ── SHARE MODAL ── */}
+      {showShareModal&&result&&(()=>{
+        const shareText=`📰 Mens Libera Analyse\n\n${result.titel}\n\nPanik-Niveau: ${result.scores?.panik}/10\nEinseitigkeit: ${result.scores?.einseitigkeit}/10\n\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera\nmens-libera.vercel.app`;
+        return (
+          <div onClick={()=>setShowShareModal(false)}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:300,borderRadius:4}}>
+              <p style={{fontSize:13,fontWeight:600,marginBottom:20,color:"var(--text)",fontFamily:"Inter, sans-serif"}}>Analyse teilen</p>
+
+              <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer"
+                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",color:"var(--text)",textDecoration:"none"}}>
+                <span style={{fontSize:22}}>📱</span>
+                <span style={{fontSize:14,fontFamily:"Inter"}}>WhatsApp</span>
+              </a>
+
+              <a href={`https://t.me/share/url?url=https://mens-libera.vercel.app&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer"
+                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",color:"var(--text)",textDecoration:"none"}}>
+                <span style={{fontSize:22}}>✈️</span>
+                <span style={{fontSize:14,fontFamily:"Inter"}}>Telegram</span>
+              </a>
+
+              <button onClick={()=>{navigator.clipboard.writeText(shareText);setCopied(true);setTimeout(()=>setCopied(false),2000);}}
+                style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)",background:"none",border:"none",cursor:"pointer",width:"100%",color:"var(--text)"}}>
+                <span style={{fontSize:22}}>📋</span>
+                <span style={{fontSize:14,fontFamily:"Inter"}}>{copied?"Kopiert ✓":"Text kopieren"}</span>
+              </button>
+
+              {typeof navigator!=="undefined"&&navigator.share&&(
+                <button onClick={()=>{navigator.share({title:"Mens Libera Analyse",text:shareText,url:"https://mens-libera.vercel.app"});}}
+                  style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",background:"none",border:"none",cursor:"pointer",width:"100%",color:"var(--text)"}}>
+                  <span style={{fontSize:22}}>↗️</span>
+                  <span style={{fontSize:14,fontFamily:"Inter"}}>Mehr Optionen</span>
+                </button>
+              )}
+
+              <button onClick={()=>setShowShareModal(false)}
+                style={{marginTop:16,width:"100%",background:"var(--accent)",color:"#0b0b12",border:"none",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                Schließen
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
