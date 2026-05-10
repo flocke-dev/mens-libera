@@ -2,70 +2,67 @@
 import { useState, useEffect, useRef } from "react";
 
 const SOURCES = [
-  { id:"tagesschau",    label:"Tagesschau",      bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://www.tagesschau.de/xml/rss2" },
-  { id:"zeit",          label:"Zeit",            bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://newsfeed.zeit.de/index" },
-  { id:"spiegel",       label:"Spiegel",         bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://www.spiegel.de/schlagzeilen/index.rss" },
-  { id:"sz",            label:"SZ",              bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://rss.sueddeutsche.de/alles" },
-  { id:"faz",           label:"FAZ",             bias:"mitte-rechts",     biasScore:1,  credibility:"hoch",    url:"https://www.faz.net/rss/aktuell/" },
-  { id:"welt",          label:"Welt",            bias:"rechts",           biasScore:2,  credibility:"hoch",    url:"https://www.welt.de/feeds/latest.rss" },
-  { id:"focus",         label:"Focus",           bias:"mitte-rechts",     biasScore:1,  credibility:"hoch",    url:"https://rss.focus.de/fol/XML/rss_folnews.xml" },
-  { id:"ntv",           label:"ntv",             bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://www.n-tv.de/rss" },
-  { id:"standard",      label:"Standard",        bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://www.derstandard.at/rss" },
-  { id:"nzz",           label:"NZZ",             bias:"mitte-rechts",     biasScore:1,  credibility:"hoch",    url:"https://www.nzz.ch/recent.rss" },
-  { id:"taz",           label:"taz",             bias:"links",            biasScore:-2, credibility:"hoch",    url:"https://taz.de/!p4608;rss/" },
-  { id:"bild",          label:"Bild",            bias:"rechts",           biasScore:2,  credibility:"mittel",  url:"https://www.bild.de/rssfeeds/rss3-20745882,feed=alles.bild.html" },
-  { id:"nachdenkseiten",label:"NachDenkSeiten",  bias:"links-alternativ", biasScore:-3, credibility:"niedrig", url:"https://www.nachdenkseiten.de/?feed=rss2" },
-  { id:"telepolis",     label:"Telepolis",       bias:"links-alternativ", biasScore:-3, credibility:"mittel",  url:"https://www.telepolis.de/rss.xml" },
-  { id:"reitschuster",  label:"Reitschuster",    bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://reitschuster.de/feed/" },
-  { id:"tichys",        label:"Tichys Einblick", bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://www.tichyseinblick.de/feed/" },
-  { id:"jf",            label:"Junge Freiheit",  bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://jungefreiheit.de/feed/" },
-  { id:"epochtimes",    label:"Epoch Times",     bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://www.epochtimes.de/feed/" },
+  // CENTER
+  { id:"reuters",    label:"Reuters",         bias:"center",       biasScore:0,  credibility:"high",   url:"https://feeds.reuters.com/reuters/topNews" },
+  { id:"bbc",        label:"BBC News",        bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://feeds.bbci.co.uk/news/rss.xml" },
+  { id:"apnews",     label:"AP News",         bias:"center",       biasScore:0,  credibility:"high",   url:"https://rsshub.app/apnews/topics/apf-topnews" },
+  { id:"npr",        label:"NPR",             bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://feeds.npr.org/1001/rss.xml" },
 
-  // Österreich
-  { id:"orf",       label:"ORF",          bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://rss.orf.at/news.xml" },
-  { id:"diepresse", label:"Die Presse",   bias:"mitte-rechts",     biasScore:1,  credibility:"hoch",    url:"https://www.diepresse.com/rss" },
-  { id:"krone",     label:"Krone",        bias:"rechts",           biasScore:2,  credibility:"mittel",  url:"https://www.krone.at/rss" },
-  { id:"kurier",    label:"Kurier",       bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://kurier.at/xml/rssd" },
+  // CENTER-LEFT
+  { id:"guardian",   label:"The Guardian",    bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://www.theguardian.com/world/rss" },
+  { id:"nyt",        label:"NY Times",        bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+  { id:"wapo",       label:"Washington Post", bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://feeds.washingtonpost.com/rss/world" },
+  { id:"independent",label:"Independent",     bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://www.independent.co.uk/news/world/rss" },
+  { id:"msnbc",      label:"MSNBC",           bias:"left",         biasScore:-2, credibility:"medium", url:"https://feeds.nbcnews.com/msnbc/public/news" },
 
-  // Schweiz
-  { id:"srf",       label:"SRF",          bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://www.srf.ch/news/rss" },
-  { id:"20min",     label:"20 Minuten",   bias:"mitte",            biasScore:0,  credibility:"mittel",  url:"https://www.20min.ch/rss/rss.tmpl" },
+  // LEFT
+  { id:"huffpost",   label:"HuffPost",        bias:"left",         biasScore:-2, credibility:"medium", url:"https://www.huffpost.com/section/world-news/feed" },
+  { id:"mother",     label:"Mother Jones",    bias:"far-left",     biasScore:-3, credibility:"medium", url:"https://www.motherjones.com/feed/" },
 
-  // International
-  { id:"bbc",       label:"BBC",          bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://feeds.bbci.co.uk/news/rss.xml" },
-  { id:"guardian",  label:"Guardian",     bias:"links",            biasScore:-2, credibility:"hoch",    url:"https://www.theguardian.com/world/rss" },
-  { id:"reuters",   label:"Reuters",      bias:"mitte",            biasScore:0,  credibility:"hoch",    url:"https://feeds.reuters.com/reuters/topNews" },
-  { id:"aljazeera", label:"Al Jazeera",   bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://www.aljazeera.com/xml/rss/all.xml" },
-  { id:"foxnews",   label:"Fox News",     bias:"rechts",           biasScore:2,  credibility:"mittel",  url:"https://feeds.foxnews.com/foxnews/latest" },
-  { id:"nyt",       label:"NY Times",     bias:"mitte-links",      biasScore:-1, credibility:"hoch",    url:"https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
-  { id:"rt",        label:"RT Deutsch",   bias:"rechts-alternativ",biasScore:3,  credibility:"niedrig", url:"https://deutsch.rt.com/feeds/rt-deutsch-news.xml" },
+  // CENTER-RIGHT
+  { id:"wsj",        label:"Wall St. Journal",bias:"center-right", biasScore:1,  credibility:"high",   url:"https://feeds.a.dj.com/rss/RSSWorldNews.xml" },
+  { id:"economist",  label:"The Economist",   bias:"center-right", biasScore:1,  credibility:"high",   url:"https://www.economist.com/international/rss.xml" },
+  { id:"telegraph",  label:"The Telegraph",   bias:"center-right", biasScore:1,  credibility:"high",   url:"https://www.telegraph.co.uk/rss.xml" },
+  { id:"spectator",  label:"The Spectator",   bias:"center-right", biasScore:1,  credibility:"medium", url:"https://www.spectator.co.uk/feed/" },
+
+  // RIGHT
+  { id:"foxnews",    label:"Fox News",        bias:"right",        biasScore:2,  credibility:"medium", url:"https://feeds.foxnews.com/foxnews/world" },
+  { id:"nypost",     label:"NY Post",         bias:"right",        biasScore:2,  credibility:"medium", url:"https://nypost.com/feed/" },
+  { id:"breitbart",  label:"Breitbart",       bias:"far-right",    biasScore:3,  credibility:"low",    url:"https://feeds.feedburner.com/breitbart" },
+  { id:"dailywire",  label:"Daily Wire",      bias:"far-right",    biasScore:3,  credibility:"low",    url:"https://www.dailywire.com/feeds/rss.xml" },
+
+  // INTERNATIONAL
+  { id:"aljazeera",  label:"Al Jazeera",      bias:"center-left",  biasScore:-1, credibility:"high",   url:"https://www.aljazeera.com/xml/rss/all.xml" },
+  { id:"dw",         label:"DW English",      bias:"center",       biasScore:0,  credibility:"high",   url:"https://rss.dw.com/rdf/rss-en-all" },
+  { id:"france24",   label:"France 24",       bias:"center",       biasScore:0,  credibility:"high",   url:"https://www.france24.com/en/rss" },
+  { id:"rt",         label:"RT",              bias:"far-right",    biasScore:3,  credibility:"low",    url:"https://www.rt.com/rss/news/" },
 ];
 
 const BIAS = {
-  "links-alternativ":  { label:"Far Left",      dot:"#818cf8" },
-  "links":             { label:"Left",           dot:"#3b82f6" },
-  "mitte-links":       { label:"Center-Left",   dot:"#60a5fa" },
-  "mitte":             { label:"Center",         dot:"#94a3b8" },
-  "mitte-rechts":      { label:"Center-Right",  dot:"#fb923c" },
-  "rechts":            { label:"Right",          dot:"#f87171" },
-  "rechts-alternativ": { label:"Far Right",      dot:"#fbbf24" },
+  "far-left":    { label:"Far Left",     dot:"#818cf8" },
+  "left":        { label:"Left",         dot:"#3b82f6" },
+  "center-left": { label:"Center-Left",  dot:"#60a5fa" },
+  "center":      { label:"Center",       dot:"#94a3b8" },
+  "center-right":{ label:"Center-Right", dot:"#fb923c" },
+  "right":       { label:"Right",        dot:"#f87171" },
+  "far-right":   { label:"Far Right",    dot:"#fbbf24" },
 };
 
-const CRED = { hoch:"#4ade80", mittel:"#fbbf24", niedrig:"#f87171" };
+const CRED = { high:"#4ade80", medium:"#fbbf24", low:"#f87171" };
 
 const RSS = "https://api.rss2json.com/v1/api.json?rss_url=";
-const STOP = new Set(["die","der","das","ein","eine","einer","und","oder","in","im","ist","sind","hat","mit","für","von","zu","auf","nach","aus","bei","vor","an","am","es","er","sie","wir","ich","den","dem","des","sich","nicht","auch","wird","werden","über","zum","zur","als","war","noch","aber","wenn","wie","so","bis","seit","mehr","neue","neuen","gegen","durch","bereits","wieder","keine","alle","beim","unter","ohne","dann","kann","soll","muss","doch","weil","damit","jedoch","dabei","dazu","laut","rund","etwa"]);
+const STOP = new Set(["the","and","that","this","with","from","have","been","will","were","they","their","there","when","what","which","about","would","could","should","more","also","than","into","over","after","before","being","some","such","even","said","says","just","like","very","only","both","then","them","these","those","other","where","while","since","still","well","does","each","most","make","many","much","your","here","come","back","news","year","time","people","first","last","made","take","want","used","need","part","days","week","months","years","world","according","including","following","during","within","without","between","through","against","around","under","until","because"]);
 
 function strip(h=""){return h.replace(/<[^>]*>/g," ").replace(/&[a-z]+;/g," ").replace(/\s+/g," ").trim();}
 function ago(d){const m=Math.floor((Date.now()-new Date(d))/60000);if(m<2)return"just now";if(m<60)return`${m}m`;if(m<1440)return`${Math.floor(m/60)}h`;return`${Math.floor(m/1440)}d`;}
-function kw(t){return t.toLowerCase().replace(/[^\wäöüß\s]/g," ").split(/\s+/).filter(w=>w.length>3&&!STOP.has(w));}
+function kw(t){return t.toLowerCase().replace(/[^\w\s]/g," ").split(/\s+/).filter(w=>w.length>3&&!STOP.has(w));}
 function sim(a,b){const ka=new Set(kw(a)),kb=new Set(kw(b));if(!ka.size||!kb.size)return 0;let c=0;ka.forEach(k=>{if(kb.has(k))c++;});return c/Math.min(ka.size,kb.size);}
 function group(arts){const g=[],u=new Set();arts.forEach((a,i)=>{if(u.has(i))return;const gr=[a];u.add(i);arts.forEach((b,j)=>{if(!u.has(j)&&sim(a.title,b.title)>=0.3){gr.push(b);u.add(j);}});g.push(gr);});return g.sort((a,b)=>b.length-a.length);}
 
 const STEPS = ["Matching sources","Identifying facts","Detecting framing","Writing fact report"];
-const CATS = [{id:"alle",label:"All"},{id:"politik",label:"Politics"},{id:"wirtschaft",label:"Economy"},{id:"international",label:"World"},{id:"technologie",label:"Tech"},{id:"gesellschaft",label:"Society"},{id:"blindspot",label:"Blindspot"}];
-const CAT_KW = {politik:["bundestag","regierung","minister","kanzler","partei","wahl","spd","cdu","grüne","koalition","gesetz","parlament"],wirtschaft:["wirtschaft","aktie","börse","dax","unternehmen","bank","inflation","euro","konjunktur","steuer","haushalt","wachstum","rezession"],international:["usa","china","russland","ukraine","eu","nato","israel","iran","krieg","konflikt","außenpolitik","europa"],technologie:["ki","künstliche intelligenz","tech","digital","software","chip","energie","innovation","startup","openai","google","apple","meta"]};
-function detectCat(t,d=""){const txt=(t+" "+d).toLowerCase();for(const[c,ks]of Object.entries(CAT_KW))if(ks.some(k=>txt.includes(k)))return c;return"gesellschaft";}
+const CATS = [{id:"alle",label:"All"},{id:"politics",label:"Politics"},{id:"economy",label:"Economy"},{id:"world",label:"World"},{id:"technology",label:"Tech"},{id:"society",label:"Society"},{id:"blindspot",label:"Blindspot"}];
+const CAT_KW = {politics:["election","president","congress","senate","parliament","government","minister","party","vote","policy","democrat","republican","legislation","political","coalition","treaty","sanctions","diplomacy"],economy:["economy","inflation","recession","gdp","stock","market","bank","interest","rate","trade","tariff","budget","debt","investment","unemployment","federal reserve","earnings","growth"],world:["war","conflict","military","nato","troops","attack","missile","ceasefire","refugee","crisis","summit","diplomacy","foreign","bilateral","un","sanctions","humanitarian"],technology:["artificial intelligence","ai","tech","software","chip","semiconductor","digital","cyber","data","startup","google","apple","meta","microsoft","openai","robot","algorithm","quantum"]};
+function detectCat(t,d=""){const txt=(t+" "+d).toLowerCase();for(const[c,ks]of Object.entries(CAT_KW))if(ks.some(k=>txt.includes(k)))return c;return"society";}
 
 // Colors without CSS variables — switched via JS for dynamic/conditional usage
 const DARK = {
@@ -204,9 +201,9 @@ export default function App() {
   const filtered=groups.filter(g=>{
     const srcs=srcsOf(g);
     if(bias==="blindspot"){const sc=srcs.map(s=>s.biasScore);if(!((sc.every(x=>x<0)||sc.every(x=>x>0))&&g.length>=2))return false;}
-    else if(bias==="links"&&!srcs.some(s=>s.biasScore<-1))return false;
-    else if(bias==="rechts"&&!srcs.some(s=>s.biasScore>1))return false;
-    else if(bias==="alternativ"&&!srcs.some(s=>Math.abs(s.biasScore)===3))return false;
+    else if(bias==="left"&&!srcs.some(s=>s.biasScore<-1))return false;
+    else if(bias==="right"&&!srcs.some(s=>s.biasScore>1))return false;
+    else if(bias==="fringe"&&!srcs.some(s=>Math.abs(s.biasScore)===3))return false;
     if(cat!=="alle"&&cat!=="blindspot"&&!g.some(a=>a.cat===cat))return false;
     if(q&&!g[0].title.toLowerCase().includes(q.toLowerCase()))return false;
     return true;
@@ -316,7 +313,7 @@ export default function App() {
             </button>
           ))}
           <div style={{width:1,height:16,background:T.border2,margin:"0 8px"}}/>
-          {[{id:"alle",label:"All Sources"},{id:"links",label:"Left"},{id:"rechts",label:"Right"},{id:"alternativ",label:"Alternative"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
+          {[{id:"alle",label:"All Sources"},{id:"left",label:"Left"},{id:"right",label:"Right"},{id:"fringe",label:"Fringe"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
             <button key={f.id} onClick={()=>setBias(f.id)} className="ml-filter-btn" style={{background:"none",border:"none",color:bias===f.id?"var(--accent)":"var(--text-sub)",padding:"4px 10px",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {f.label}
             </button>
@@ -382,7 +379,7 @@ export default function App() {
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
                     <span key={s.id} style={{fontSize:13,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.7}}>
-                      {s.label}{s.credibility!=="hoch"&&<span style={{color:CRED[s.credibility],marginLeft:2}}>·</span>}
+                      {s.label}{s.credibility!=="high"&&<span style={{color:CRED[s.credibility],marginLeft:2}}>·</span>}
                     </span>
                   ))}
                   {srcs.length>4&&<span style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>+{srcs.length-4}</span>}
@@ -554,13 +551,13 @@ export default function App() {
                               <div style={{width:110,flexShrink:0,padding:"12px 14px",display:"flex",flexDirection:"column",justifyContent:"center",borderRight:`1px solid ${T.hoverBg}`}}>
                                 <span style={{fontSize:11,fontWeight:600,color:BIAS[a.bias].dot,fontFamily:"'Inter',sans-serif"}}>{a.slabel}</span>
                                 <span style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif",marginTop:2}}>{BIAS[a.bias].label}</span>
-                                {a.cred!=="hoch"&&<span style={{fontSize:9,color:CRED[a.cred],fontFamily:"'Inter',sans-serif",marginTop:1}}>{a.cred==="mittel"?"●●○":"●○○"}</span>}
+                                {a.cred!=="high"&&<span style={{fontSize:9,color:CRED[a.cred],fontFamily:"'Inter',sans-serif",marginTop:1}}>{a.cred==="medium"?"●●○":"●○○"}</span>}
                               </div>
                               {/* Headline */}
                               <div style={{flex:1,padding:"12px 16px",display:"flex",alignItems:"center"}}>
                                 <p style={{fontSize:15,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>
                                   {words.map((w,wi)=>{
-                                    const clean=w.replace(/[^\wäöüß]/g,"").toLowerCase();
+                                    const clean=w.replace(/[^\w]/g,"").toLowerCase();
                                     const unique=clean.length>4&&!others.some(t=>t.includes(clean));
                                     return <span key={wi} style={{color:unique?T.uniqueWord:T.commonWord,fontWeight:unique?600:400}}>{w}{wi<words.length-1?" ":""}</span>;
                                   })}
