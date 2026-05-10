@@ -42,13 +42,13 @@ const SOURCES = [
 ];
 
 const BIAS = {
-  "links-alternativ":  { label:"Links-Alt.",   dot:"#818cf8" },
-  "links":             { label:"Links",         dot:"#3b82f6" },
-  "mitte-links":       { label:"Mitte-Links",   dot:"#60a5fa" },
-  "mitte":             { label:"Mitte",         dot:"#94a3b8" },
-  "mitte-rechts":      { label:"Mitte-Rechts",  dot:"#fb923c" },
-  "rechts":            { label:"Rechts",        dot:"#f87171" },
-  "rechts-alternativ": { label:"Rechts-Alt.",   dot:"#fbbf24" },
+  "links-alternativ":  { label:"Far Left",      dot:"#818cf8" },
+  "links":             { label:"Left",           dot:"#3b82f6" },
+  "mitte-links":       { label:"Center-Left",   dot:"#60a5fa" },
+  "mitte":             { label:"Center",         dot:"#94a3b8" },
+  "mitte-rechts":      { label:"Center-Right",  dot:"#fb923c" },
+  "rechts":            { label:"Right",          dot:"#f87171" },
+  "rechts-alternativ": { label:"Far Right",      dot:"#fbbf24" },
 };
 
 const CRED = { hoch:"#4ade80", mittel:"#fbbf24", niedrig:"#f87171" };
@@ -57,13 +57,13 @@ const RSS = "https://api.rss2json.com/v1/api.json?rss_url=";
 const STOP = new Set(["die","der","das","ein","eine","einer","und","oder","in","im","ist","sind","hat","mit","für","von","zu","auf","nach","aus","bei","vor","an","am","es","er","sie","wir","ich","den","dem","des","sich","nicht","auch","wird","werden","über","zum","zur","als","war","noch","aber","wenn","wie","so","bis","seit","mehr","neue","neuen","gegen","durch","bereits","wieder","keine","alle","beim","unter","ohne","dann","kann","soll","muss","doch","weil","damit","jedoch","dabei","dazu","laut","rund","etwa"]);
 
 function strip(h=""){return h.replace(/<[^>]*>/g," ").replace(/&[a-z]+;/g," ").replace(/\s+/g," ").trim();}
-function ago(d){const m=Math.floor((Date.now()-new Date(d))/60000);if(m<2)return"gerade";if(m<60)return`${m} Min.`;if(m<1440)return`${Math.floor(m/60)} Std.`;return`${Math.floor(m/1440)} Tage`;}
+function ago(d){const m=Math.floor((Date.now()-new Date(d))/60000);if(m<2)return"just now";if(m<60)return`${m}m`;if(m<1440)return`${Math.floor(m/60)}h`;return`${Math.floor(m/1440)}d`;}
 function kw(t){return t.toLowerCase().replace(/[^\wäöüß\s]/g," ").split(/\s+/).filter(w=>w.length>3&&!STOP.has(w));}
 function sim(a,b){const ka=new Set(kw(a)),kb=new Set(kw(b));if(!ka.size||!kb.size)return 0;let c=0;ka.forEach(k=>{if(kb.has(k))c++;});return c/Math.min(ka.size,kb.size);}
 function group(arts){const g=[],u=new Set();arts.forEach((a,i)=>{if(u.has(i))return;const gr=[a];u.add(i);arts.forEach((b,j)=>{if(!u.has(j)&&sim(a.title,b.title)>=0.3){gr.push(b);u.add(j);}});g.push(gr);});return g.sort((a,b)=>b.length-a.length);}
 
-const STEPS = ["Quellen abgleichen","Fakten identifizieren","Framing erkennen","Sachbericht verfassen"];
-const CATS = [{id:"alle",label:"Alles"},{id:"politik",label:"Politik"},{id:"wirtschaft",label:"Wirtschaft"},{id:"international",label:"Welt"},{id:"technologie",label:"Tech"},{id:"gesellschaft",label:"Gesellschaft"},{id:"blindspot",label:"Blindspot"}];
+const STEPS = ["Matching sources","Identifying facts","Detecting framing","Writing fact report"];
+const CATS = [{id:"alle",label:"All"},{id:"politik",label:"Politics"},{id:"wirtschaft",label:"Economy"},{id:"international",label:"World"},{id:"technologie",label:"Tech"},{id:"gesellschaft",label:"Society"},{id:"blindspot",label:"Blindspot"}];
 const CAT_KW = {politik:["bundestag","regierung","minister","kanzler","partei","wahl","spd","cdu","grüne","koalition","gesetz","parlament"],wirtschaft:["wirtschaft","aktie","börse","dax","unternehmen","bank","inflation","euro","konjunktur","steuer","haushalt","wachstum","rezession"],international:["usa","china","russland","ukraine","eu","nato","israel","iran","krieg","konflikt","außenpolitik","europa"],technologie:["ki","künstliche intelligenz","tech","digital","software","chip","energie","innovation","startup","openai","google","apple","meta"]};
 function detectCat(t,d=""){const txt=(t+" "+d).toLowerCase();for(const[c,ks]of Object.entries(CAT_KW))if(ks.some(k=>txt.includes(k)))return c;return"gesellschaft";}
 
@@ -182,7 +182,7 @@ export default function App() {
     setAnalysing(true);setResult(null);setShowOriginal(false);let s=0;setStep(0);
     const iv=setInterval(()=>{s=Math.min(s+1,3);setStep(s);},1000);
     try{
-      const promptText=`Analysiere diesen Nachrichtenartikel objektiv.\n\nSCHRITT 1 – SPRACHE: Erkenne die Originalsprache.\nSCHRITT 2 – ÜBERSETZUNG: Falls der Artikel NICHT auf Deutsch ist, übersetze ihn vollständig ins Deutsche und analysiere dann den übersetzten Text.\n\nARTIKEL:\n${txt.slice(0,3000)}\n\nAntworte NUR als JSON ohne Backticks:\n{"sprache":"<erkannte Sprache, z.B. Deutsch, Englisch, Französisch, Arabisch>","uebersetzung":<null falls Deutsch, sonst vollständige deutsche Übersetzung als String>,"titel":"<max 70 Zeichen>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 belegbare Fakten>],"meinungen":[<3-4 verkleidete Meinungen>],"fehlt":[<3-4 fehlende Perspektiven>],"reisser":[<2-3 reißerische Zitate>],"urteil":"<2 Sätze>","sachTitel":"<sachlicher Titel>","sach":"<180-220 Wörter sachlicher Bericht, Absätze durch \\n\\n>"}`;
+      const promptText=`Analyze this news article objectively. Respond entirely in ENGLISH.\n\nSTEP 1 – LANGUAGE: Detect the original language.\nSTEP 2 – TRANSLATION: If the article is NOT in English, translate it fully to English first, then analyze the translated text.\n\nARTICLE:\n${txt.slice(0,3000)}\n\nRespond ONLY as JSON without backticks:\n{"sprache":"<detected language, e.g. German, English, French, Arabic>","uebersetzung":<null if already English, otherwise full English translation as string>,"titel":"<max 70 chars>","scores":{"panik":<1-10>,"einseitigkeit":<1-10>,"faktendichte":<1-10>,"emotionalisierung":<1-10>},"fakten":[<3-4 verifiable facts in English>],"meinungen":[<3-4 opinions disguised as facts in English>],"fehlt":[<3-4 missing perspectives in English>],"reisser":[<2-3 sensationalist quotes in English>],"urteil":"<2 sentences verdict in English>","sachTitel":"<neutral title in English>","sach":"<180-220 word neutral fact report in English, paragraphs separated by \\n\\n>"}`;
       const res=await fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({messages:[{role:"user",content:promptText}]})});
       const d=await res.json();
@@ -199,7 +199,7 @@ export default function App() {
 
   const srcsOf=g=>SOURCES.filter(s=>g.some(a=>a.sid===s.id));
   const panikColor=v=>v<=3?"#4ade80":v<=6?"#fbbf24":"#f87171";
-  const panikWord=v=>v<=3?"Niedrig":v<=6?"Mittel":"Hoch";
+  const panikWord=v=>v<=3?"Low":v<=6?"Medium":"High";
 
   const filtered=groups.filter(g=>{
     const srcs=srcsOf(g);
@@ -212,7 +212,7 @@ export default function App() {
     return true;
   });
 
-  const TABS=[{id:"headlines",label:"Schlagzeilen"},{id:"analyse",label:"KI-Analyse"},{id:"fakten",label:"Fakten"},{id:"fehlt",label:"Was fehlt"},{id:"sach",label:"Sachbericht"}];
+  const TABS=[{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"}];
 
   return (
     <div className="ml-root" style={{background:"var(--bg)",minHeight:"100vh",color:"var(--text)",fontFamily:"'EB Garamond', Georgia, serif"}}>
@@ -271,13 +271,13 @@ export default function App() {
               <span style={{fontFamily:"'EB Garamond',Georgia,serif",fontSize:22,fontWeight:400,letterSpacing:-0.5,color:"var(--accent)",fontStyle:"italic"}}>Libera</span>
               <span style={{width:5,height:5,borderRadius:"50%",background:"var(--accent)",display:"inline-block",marginLeft:2,marginBottom:4}}/>
             </div>
-            <div style={{fontSize:8,letterSpacing:4,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:1}}>DER FREIE VERSTAND</div>
+            <div style={{fontSize:8,letterSpacing:4,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:1}}>THE FREE MIND</div>
           </div>
 
           {/* Search */}
           <div className="ml-search" style={{flex:1,maxWidth:380,position:"relative"}}>
             <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"var(--text-sub)"}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suchen…"
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search…"
               style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"7px 32px 7px 32px",fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:4}}/>
             {q.length>0&&(
               <button onClick={()=>setQ("")}
@@ -291,18 +291,18 @@ export default function App() {
 
           {/* Actions */}
           <button className="ml-text-btn" onClick={()=>{setManual(true);setSel(null);setResult(null);setManualTxt("");}} style={{background:"transparent",border:`1px solid ${T.border2}`,color:T.textMid,padding:"5px 14px",fontSize:12,fontFamily:"'Inter',sans-serif",borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:14}}>+</span> Text eingeben
+            <span style={{fontSize:14}}>+</span> Add Text
           </button>
           <button onClick={load} disabled={loading} style={{background:loading?"var(--bg-panel)":"var(--accent)",border:"none",color:loading?"var(--text-sub)":"var(--bg)",padding:"5px 14px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:6}}>
             {loading
               ? <><span style={{width:12,height:12,border:"1.5px solid var(--text-sub)",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>{loaded}/{SOURCES.length}</>
-              : <>↻ Aktualisieren</>}
+              : <>↻ Refresh</>}
           </button>
           {history.length>0&&(
-            <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>{history.length} Analysen</div>
+            <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>{history.length} Analyses</div>
           )}
           {/* Theme toggle */}
-          <button onClick={()=>setDark(d=>!d)} title={dark?"Hell-Modus":"Dunkel-Modus"}
+          <button onClick={()=>setDark(d=>!d)} title={dark?"Light Mode":"Dark Mode"}
             style={{background:"none",border:`1px solid ${T.border2}`,color:"var(--text-sub)",width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             {dark ? "☀️" : "🌙"}
           </button>
@@ -316,14 +316,14 @@ export default function App() {
             </button>
           ))}
           <div style={{width:1,height:16,background:T.border2,margin:"0 8px"}}/>
-          {[{id:"alle",label:"Alle Quellen"},{id:"links",label:"Links"},{id:"rechts",label:"Rechts"},{id:"alternativ",label:"Alternativ"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
+          {[{id:"alle",label:"All Sources"},{id:"links",label:"Left"},{id:"rechts",label:"Right"},{id:"alternativ",label:"Alternative"},{id:"blindspot",label:"⚠ Blindspot"}].map(f=>(
             <button key={f.id} onClick={()=>setBias(f.id)} className="ml-filter-btn" style={{background:"none",border:"none",color:bias===f.id?"var(--accent)":"var(--text-sub)",padding:"4px 10px",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:bias===f.id?600:400,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
               {f.label}
             </button>
           ))}
           <div style={{flex:1}}/>
-          {read.size>0&&<span style={{fontSize:11,color:"var(--accent)",fontFamily:"'Inter',sans-serif",marginRight:8}}>{read.size} von {filtered.length} analysiert</span>}
-          <span style={{fontSize:11,color:T.border2,fontFamily:"'Inter',sans-serif"}}>{filtered.length} Storys</span>
+          {read.size>0&&<span style={{fontSize:11,color:"var(--accent)",fontFamily:"'Inter',sans-serif",marginRight:8}}>{read.size} of {filtered.length} analyzed</span>}
+          <span style={{fontSize:11,color:T.border2,fontFamily:"'Inter',sans-serif"}}>{filtered.length} Stories</span>
         </div>
       </nav>
 
@@ -368,7 +368,7 @@ export default function App() {
                     <span className="tooltip" style={{fontSize:9,color:"#f87171",fontFamily:"'Inter',sans-serif",letterSpacing:0.5,gap:3}}>
                       BLINDSPOT
                       <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:11,height:11,borderRadius:"50%",border:"1px solid #f8717166",fontSize:8,lineHeight:1,cursor:"default",marginLeft:2}}>?</span>
-                      <span className="tooltip-text">Diese Story wird nur von einer politischen Seite berichtet – die andere Seite schweigt.</span>
+                      <span className="tooltip-text">This story is only covered by one political side – the other side remains silent.</span>
                     </span>
                   )}
                   <span style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
@@ -377,7 +377,7 @@ export default function App() {
                   <p className="row-title" style={{fontSize:17,lineHeight:1.6,color:isSelected?T.textHigh:isRead?"var(--text-sub)":T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,margin:0,transition:"color 0.15s"}}>
                     {g[0].title}
                   </p>
-                  {isRead&&<span style={{color:"#4ade80",fontSize:11,fontFamily:"'Inter',sans-serif",flexShrink:0}}>✓ Analysiert</span>}
+                  {isRead&&<span style={{color:"#4ade80",fontSize:11,fontFamily:"'Inter',sans-serif",flexShrink:0}}>✓ Analyzed</span>}
                 </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
@@ -399,7 +399,7 @@ export default function App() {
           {(sel||manual)&&(
             <button className="ml-back-btn" onClick={()=>{setSel(null);setResult(null);setManual(false);window.scrollTo({top:0,behavior:"smooth"});}}
               style={{alignItems:"center",gap:6,marginBottom:16,background:"none",border:"none",color:"var(--accent)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:500,cursor:"pointer",minHeight:44,padding:"0 4px"}}>
-              ← Zurück zum Feed
+              ← Back to Feed
             </button>
           )}
 
@@ -407,11 +407,11 @@ export default function App() {
           {manual&&(
             <div className="fi">
               <div style={{marginBottom:20}}>
-                <div style={{fontSize:11,letterSpacing:2,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:12}}>EIGENEN TEXT ANALYSIEREN</div>
+                <div style={{fontSize:11,letterSpacing:2,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:12}}>ANALYZE YOUR OWN TEXT</div>
 
                 {/* Tabs */}
                 <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${T.border2}`}}>
-                  {[{id:"text",label:"Text einfügen"},{id:"url",label:"URL eingeben"}].map(t=>(
+                  {[{id:"text",label:"Paste Text"},{id:"url",label:"Enter URL"}].map(t=>(
                     <button key={t.id} onClick={()=>{setManualTab(t.id);setUrlPreview(null);setUrlError(null);}}
                       style={{background:"none",border:"none",borderBottom:manualTab===t.id?"2px solid var(--accent)":"2px solid transparent",color:manualTab===t.id?"var(--accent)":T.textMid,padding:"8px 14px",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:500,cursor:"pointer",marginBottom:-1,transition:"color 0.15s"}}>
                       {t.label}
@@ -424,11 +424,11 @@ export default function App() {
                   <>
                     <textarea value={manualTxt} onChange={e=>setManualTxt(e.target.value)} rows={8}
                       style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"14px 16px",fontSize:14,lineHeight:1.8,fontFamily:"'EB Garamond',Georgia,serif",resize:"vertical",outline:"none",borderRadius:4}}
-                      placeholder="Artikel hier einfügen…"/>
+                      placeholder="Paste article here…"/>
                     <div style={{display:"flex",justifyContent:"flex-end",marginTop:10}}>
                       <button onClick={()=>analyse(manualTxt,null)} disabled={analysing||manualTxt.length<80}
                         style={{background:analysing||manualTxt.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||manualTxt.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
-                        {analysing?"Analysiere…":"Analysieren →"}
+                        {analysing?"Analyzing…":"Analyze →"}
                       </button>
                     </div>
                   </>
@@ -455,13 +455,13 @@ export default function App() {
                         disabled={urlFetching||!urlInput.trim()}
                         style={{background:urlFetching||!urlInput.trim()?"var(--bg-panel)":"var(--accent)",color:urlFetching||!urlInput.trim()?"var(--text-sub)":"var(--bg)",border:"none",padding:"10px 18px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer",whiteSpace:"nowrap"}}>
                         {urlFetching?(
-                          <><span style={{width:10,height:10,border:"1.5px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite",marginRight:6}}/> Lädt…</>
-                        ):"Artikel laden"}
+                          <><span style={{width:10,height:10,border:"1.5px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite",marginRight:6}}/> Loading…</>
+                        ):"Load Article"}
                       </button>
                     </div>
 
                     {urlError&&(
-                      <div style={{color:"#f87171",fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Fehler: {urlError}</div>
+                      <div style={{color:"#f87171",fontSize:13,fontFamily:"'Inter',sans-serif",marginBottom:12}}>Error: {urlError}</div>
                     )}
 
                     {urlPreview&&(
@@ -473,7 +473,7 @@ export default function App() {
                         <div style={{display:"flex",justifyContent:"flex-end",marginTop:12}}>
                           <button onClick={()=>analyse((urlPreview.title+"\n\n"+urlPreview.text),null)} disabled={analysing||urlPreview.text.length<80}
                             style={{background:analysing||urlPreview.text.length<80?"var(--bg-panel)":"var(--accent)",color:analysing||urlPreview.text.length<80?"var(--text-sub)":"var(--bg)",border:"none",padding:"9px 20px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:4,cursor:"pointer"}}>
-                            {analysing?"Analysiere…":"Analysieren →"}
+                            {analysing?"Analyzing…":"Analyze →"}
                           </button>
                         </div>
                       </div>
@@ -495,7 +495,7 @@ export default function App() {
                   </h2>
                   <div style={{textAlign:"right",flexShrink:0}}>
                     <div style={{fontSize:28,fontWeight:600,color:T.accentAlt,fontFamily:"'Inter',sans-serif",lineHeight:1}}>{sel.length}</div>
-                    <div style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif",letterSpacing:1}}>QUELLEN</div>
+                    <div style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif",letterSpacing:1}}>SOURCES</div>
                   </div>
                 </div>
                 {/* Source links */}
@@ -514,7 +514,7 @@ export default function App() {
               {result&&result.sprache&&result.sprache!=="Deutsch"&&(
                 <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",marginBottom:16,background:"rgba(200,169,110,0.08)",border:"1px solid rgba(200,169,110,0.3)",borderRadius:4,fontSize:13,color:"#c8a96e",fontFamily:"'Inter',sans-serif"}}>
                   <span>🌍</span>
-                  <span>Originalsprache: <strong>{result.sprache}</strong> · Automatisch übersetzt</span>
+                  <span>Original language: <strong>{result.sprache}</strong> · Automatically translated</span>
                 </div>
               )}
 
@@ -528,7 +528,7 @@ export default function App() {
                 {result&&(
                   <button onClick={handleShare}
                     style={{marginLeft:"auto",background:"none",border:"none",color:copied?"var(--accent)":"var(--text-sub)",fontSize:11,fontFamily:"'Inter',sans-serif",cursor:"pointer",padding:"8px 12px",display:"flex",alignItems:"center",gap:4}}>
-                    {copied?"Kopiert ✓":"⎙ Teilen"}
+                    {copied?"Copied ✓":"⎙ Share"}
                   </button>
                 )}
               </div>
@@ -537,9 +537,9 @@ export default function App() {
               {tab==="headlines"&&(
                 <div>
                   {sel.length<2
-                    ? <p style={{color:T.textLow,fontFamily:"'Inter',sans-serif",fontSize:13}}>Nur eine Quelle – kein Vergleich möglich.</p>
+                    ? <p style={{color:T.textLow,fontFamily:"'Inter',sans-serif",fontSize:13}}>Only one source – no comparison possible.</p>
                     : <>
-                        <p style={{fontSize:12,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:20,letterSpacing:0.5}}>GLEICHE STORY · VERSCHIEDENE PERSPEKTIVEN · <span style={{color:T.textMid}}>Fett</span> = einzigartige Formulierung</p>
+                        <p style={{fontSize:12,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:20,letterSpacing:0.5}}>SAME STORY · DIFFERENT PERSPECTIVES · <span style={{color:T.textMid}}>Bold</span> = unique phrasing per source</p>
                         {sel.map((a,i)=>{
                           const others=sel.filter((_,j)=>j!==i).map(x=>x.title.toLowerCase());
                           const words=a.title.split(" ");
@@ -588,7 +588,7 @@ export default function App() {
                     <div className="fi">
                       {/* Scores */}
                       <div className="ml-2col" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3,marginBottom:20}}>
-                        {[["Panik-Niveau",result.scores?.panik],["Einseitigkeit",result.scores?.einseitigkeit],["Emotionalisierung",result.scores?.emotionalisierung],["Faktendichte",11-(result.scores?.faktendichte||5)]].map(([l,v])=>(
+                        {[["Panic Level",result.scores?.panik],["One-Sidedness",result.scores?.einseitigkeit],["Emotionalization",result.scores?.emotionalisierung],["Fact Density",11-(result.scores?.faktendichte||5)]].map(([l,v])=>(
                           <div key={l} style={{background:"var(--bg-panel)",padding:"16px 18px",border:`1px solid ${T.border2}`,borderRadius:2}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                               <span style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>{l}</span>
@@ -603,13 +603,13 @@ export default function App() {
                       <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:2,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
                         <span style={{fontSize:36,fontWeight:700,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{displayScore}</span>
                         <div>
-                          <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif"}}>{panikWord(result.scores?.panik)} Panikniveau</div>
+                          <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif"}}>{panikWord(result.scores?.panik)} Panic Level</div>
                           <div style={{fontSize:13,color:T.textMid,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginTop:2}}>{result.urteil}</div>
                         </div>
                       </div>
                       {result.reisser?.length>0&&(
                         <div>
-                          <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:10}}>REISSERISCHE FORMULIERUNGEN</div>
+                          <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:10}}>SENSATIONALIST LANGUAGE</div>
                           {result.reisser.map((r,i)=>(
                             <div key={i} style={{padding:"8px 14px",background:"var(--bg-panel)",borderLeft:"2px solid #f8717133",marginBottom:6,border:`1px solid ${T.border2}`,borderRadius:2}}>
                               <span style={{fontSize:13,color:"#f87171",fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic"}}>„{r}"</span>
@@ -625,7 +625,7 @@ export default function App() {
               {tab==="fakten"&&result&&!result.error&&(
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="fi ml-2col">
                   <div>
-                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>BELEGBARE FAKTEN</div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>VERIFIED FACTS</div>
                     {result.fakten?.map((f,i)=>(
                       <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #4ade8044",border:"1px solid var(--border)",borderRadius:2}}>
                         <span style={{color:"#4ade80",flexShrink:0,fontSize:12,marginTop:1}}>✓</span>
@@ -634,7 +634,7 @@ export default function App() {
                     ))}
                   </div>
                   <div>
-                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>MEINUNGEN ALS FAKTEN</div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>OPINIONS AS FACTS</div>
                     {result.meinungen?.map((m,i)=>(
                       <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #fbbf2444",border:"1px solid var(--border)",borderRadius:2}}>
                         <span style={{color:"#fbbf24",flexShrink:0,fontSize:12,marginTop:1}}>⚠</span>
@@ -648,14 +648,14 @@ export default function App() {
               {/* ── FEHLT ── */}
               {tab==="fehlt"&&result&&!result.error&&(
                 <div className="fi">
-                  <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:16}}>FEHLENDE PERSPEKTIVEN & OFFENE FRAGEN</div>
+                  <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:16}}>MISSING PERSPECTIVES & OPEN QUESTIONS</div>
                   {result.fehlt?.map((f,i)=>(
                     <div key={i} style={{display:"flex",gap:12,marginBottom:8,padding:"12px 14px",background:"var(--bg-panel)",alignItems:"flex-start",border:"1px solid var(--border)",borderRadius:2}}>
                       <div style={{width:18,height:18,borderRadius:"50%",background:"#1e3a8a",color:"#93c5fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontFamily:"'Inter',sans-serif",fontWeight:700,flexShrink:0,marginTop:1}}>?</div>
                       <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{f}</p>
                     </div>
                   ))}
-                  <p style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:14,lineHeight:1.6}}>Suche nach diesen Aspekten in weiteren Quellen, um dir ein vollständiges Bild zu machen.</p>
+                  <p style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:14,lineHeight:1.6}}>Search for these aspects in other sources to get the full picture.</p>
                 </div>
               )}
 
@@ -663,17 +663,17 @@ export default function App() {
               {tab==="sach"&&result&&!result.error&&(
                 <div className="fi">
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>KI-SACHBERICHT · NUR FAKTEN · OHNE WERTUNG</div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>AI FACT REPORT · FACTS ONLY · NO BIAS</div>
                     {result.uebersetzung&&(
                       <button onClick={()=>setShowOriginal(o=>!o)}
                         style={{background:"none",border:`1px solid rgba(200,169,110,0.4)`,color:"#c8a96e",fontSize:11,fontFamily:"'Inter',sans-serif",padding:"4px 10px",borderRadius:3,cursor:"pointer",whiteSpace:"nowrap"}}>
-                        {showOriginal?"Sachbericht anzeigen":"Original anzeigen"}
+                        {showOriginal?"Show Fact Report":"Show Original"}
                       </button>
                     )}
                   </div>
                   {showOriginal&&result.uebersetzung?(
                     <>
-                      <div style={{fontSize:9,letterSpacing:2,color:"#c8a96e",fontFamily:"'Inter',sans-serif",marginBottom:12}}>DEUTSCHE ÜBERSETZUNG · ORIGINALTEXT</div>
+                      <div style={{fontSize:9,letterSpacing:2,color:"#c8a96e",fontFamily:"'Inter',sans-serif",marginBottom:12}}>ENGLISH TRANSLATION · ORIGINAL TEXT</div>
                       <div style={{borderLeft:`2px solid rgba(200,169,110,0.3)`,paddingLeft:16}}>
                         {result.uebersetzung.split("\n\n").map((p,i)=>(
                           <p key={i} style={{fontSize:17,lineHeight:1.9,color:T.textBody,margin:"0 0 14px",fontFamily:"'EB Garamond',Georgia,serif"}}>{p}</p>
@@ -690,16 +690,16 @@ export default function App() {
                       </div>
                     </>
                   )}
-                  <p style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:16}}>KI-generiert auf Basis des eingegebenen Artikels. Ersetzt keine eigenständige Recherche.</p>
+                  <p style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:16}}>AI-generated. Does not replace independent research.</p>
                 </div>
               )}
 
-              {result?.error&&<p style={{color:"#f87171",fontFamily:"'Inter',sans-serif",fontSize:13}}>Analyse fehlgeschlagen. Bitte erneut versuchen.</p>}
+              {result?.error&&<p style={{color:"#f87171",fontFamily:"'Inter',sans-serif",fontSize:13}}>Analysis failed. Please try again.</p>}
 
               {/* Show placeholder in analyse tab while not yet analysed */}
               {tab==="analyse"&&!result&&!analysing&&(
                 <div style={{padding:"48px 0",textAlign:"center"}}>
-                  <p style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>ANALYSE WIRD GELADEN…</p>
+                  <p style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>LOADING ANALYSIS…</p>
                 </div>
               )}
             </div>
@@ -709,7 +709,7 @@ export default function App() {
           {!sel&&!manual&&(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:400,gap:12}}>
               <div style={{width:40,height:40,borderRadius:"50%",border:`1px solid ${T.border2}`,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-sub)",fontSize:18}}>◎</div>
-              <p style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",textAlign:"center",lineHeight:1.6}}>Story links auswählen<br/><span style={{fontSize:11,color:T.border2}}>KI-Analyse startet automatisch</span></p>
+              <p style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",textAlign:"center",lineHeight:1.6}}>Select a story on the left<br/><span style={{fontSize:11,color:T.border2}}>AI analysis starts automatically</span></p>
             </div>
           )}
         </div>
@@ -725,14 +725,14 @@ export default function App() {
             </div>
           ))}
         </div>
-        <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · Der freie Verstand · Nur Prototyp</span>
+        <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
 
       {/* ── SHARE MODAL ── */}
       {showShareModal&&result&&(()=>{
         const sc=result.scores||{};
         const bar=(v=0)=>`${'█'.repeat(v)}${'░'.repeat(10-v)}`;
-        const shareText=`⚖️ MENS LIBERA · Der freie Verstand\n\n📰 ${result.titel}\n\n📊 ANALYSE:\n- Panik-Niveau: ${bar(sc.panik)} ${sc.panik}/10\n- Einseitigkeit: ${bar(sc.einseitigkeit)} ${sc.einseitigkeit}/10\n- Emotionalisierung: ${bar(sc.emotionalisierung)} ${sc.emotionalisierung}/10\n- Faktendichte: ${bar(sc.faktendichte)} ${sc.faktendichte}/10\n\n✅ FAKTEN:\n${result.fakten?.slice(0,3).map(f=>`• ${f}`).join('\n')}\n\n⚠️ MEINUNGEN ALS FAKTEN:\n${result.meinungen?.slice(0,2).map(m=>`• ${m}`).join('\n')}\n\n❓ WAS FEHLT:\n${result.fehlt?.slice(0,2).map(f=>`• ${f}`).join('\n')}\n\n📝 FAZIT:\n${result.urteil}\n\n🔍 Analysiert mit Mens Libera – Der freie Verstand\n🌐 mens-libera.vercel.app`;
+        const shareText=`⚖️ MENS LIBERA · The Free Mind\n\n📰 ${result.titel}\n\n📊 ANALYSIS:\n- Panic Level: ${bar(sc.panik)} ${sc.panik}/10\n- One-Sidedness: ${bar(sc.einseitigkeit)} ${sc.einseitigkeit}/10\n- Emotionalization: ${bar(sc.emotionalisierung)} ${sc.emotionalisierung}/10\n- Fact Density: ${bar(sc.faktendichte)} ${sc.faktendichte}/10\n\n✅ FACTS:\n${result.fakten?.slice(0,3).map(f=>`• ${f}`).join('\n')}\n\n⚠️ OPINIONS AS FACTS:\n${result.meinungen?.slice(0,2).map(m=>`• ${m}`).join('\n')}\n\n❓ WHAT'S MISSING:\n${result.fehlt?.slice(0,2).map(f=>`• ${f}`).join('\n')}\n\n📝 CONCLUSION:\n${result.urteil}\n\n🔍 Analyzed with Mens Libera – The Free Mind\n🌐 mens-libera.vercel.app`;
         const enc=encodeURIComponent(shareText);
         const iconWa=(
           <svg width="24" height="24" viewBox="0 0 24 24" fill="#25D366">
@@ -764,7 +764,7 @@ export default function App() {
             style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <div onClick={e=>e.stopPropagation()}
               style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:320,borderRadius:4}}>
-              <p style={{fontSize:13,fontWeight:600,marginBottom:16,color:"var(--text)",fontFamily:"Inter, sans-serif"}}>Analyse teilen</p>
+              <p style={{fontSize:13,fontWeight:600,marginBottom:16,color:"var(--text)",fontFamily:"Inter, sans-serif"}}>Share Analysis</p>
 
               <a href={`https://wa.me/?text=${enc}`} target="_blank" rel="noreferrer"
                 style={rowStyle}
@@ -787,7 +787,7 @@ export default function App() {
                 onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
                 onMouseLeave={e=>e.currentTarget.style.background="none"}>
                 <div style={logoBox}>{iconCopy}</div>
-                <span style={{fontSize:14,fontFamily:"Inter"}}>{copied?"Kopiert ✓":"Text kopieren"}</span>
+                <span style={{fontSize:14,fontFamily:"Inter"}}>{copied?"Copied ✓":"Copy Text"}</span>
               </button>
 
               {typeof navigator!=="undefined"&&navigator.share&&(
@@ -796,13 +796,13 @@ export default function App() {
                   onMouseEnter={e=>e.currentTarget.style.background="var(--bg)"}
                   onMouseLeave={e=>e.currentTarget.style.background="none"}>
                   <div style={logoBox}>{iconShare}</div>
-                  <span style={{fontSize:14,fontFamily:"Inter"}}>Mehr Optionen</span>
+                  <span style={{fontSize:14,fontFamily:"Inter"}}>More Options</span>
                 </button>
               )}
 
               <button onClick={()=>setShowShareModal(false)}
                 style={{marginTop:16,width:"100%",background:"var(--accent)",color:"#0b0b12",border:"none",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
-                Schließen
+                Close
               </button>
             </div>
           </div>
@@ -812,9 +812,9 @@ export default function App() {
       {/* ── ONBOARDING MODAL ── */}
       {showOnboarding&&(()=>{
         const steps=[
-          {icon:"⚖️",title:"Bias erkennen",text:"Jede Story zeigt farbige Punkte – von Blau (Links) bis Rot (Rechts). So siehst du sofort welche Seite berichtet."},
-          {icon:"🔴",title:"Blindspot entdecken",text:"Wenn nur eine politische Seite über eine Story berichtet, warnen wir dich. Die andere Seite schweigt bewusst."},
-          {icon:"🔍",title:"KI-Analyse",text:"Klicke auf eine Story – die KI analysiert sofort Panikniveau, Framing und was im Artikel fehlt."},
+          {icon:"⚖️",title:"Spot the Bias",text:"Every story shows colored dots – from Blue (Left) to Red (Right). See at a glance which side is reporting."},
+          {icon:"🔴",title:"Find Blind Spots",text:"When only one political side covers a story, we warn you. The other side is deliberately silent."},
+          {icon:"🔍",title:"AI Analysis",text:"Click on a story – the AI instantly analyzes panic level, framing, and what's missing from the article."},
         ];
         const s=steps[onboardingStep];
         const isLast=onboardingStep===steps.length-1;
@@ -843,18 +843,18 @@ export default function App() {
                 {onboardingStep>0&&(
                   <button onClick={()=>setOnboardingStep(s=>s-1)}
                     style={{flex:1,background:"none",border:"1px solid var(--border)",color:"var(--text-sub)",padding:"10px 0",fontSize:13,fontFamily:"Inter",cursor:"pointer",borderRadius:3}}>
-                    ← Zurück
+                    ← Back
                   </button>
                 )}
                 {!isLast?(
                   <button onClick={()=>setOnboardingStep(s=>s+1)}
                     style={{flex:1,background:"var(--accent)",border:"none",color:"#0b0b12",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
-                    Weiter →
+                    Next →
                   </button>
                 ):(
                   <button onClick={closeOnboarding}
                     style={{flex:1,background:"var(--accent)",border:"none",color:"#0b0b12",padding:"10px 0",fontSize:13,fontFamily:"Inter",fontWeight:600,cursor:"pointer",borderRadius:3}}>
-                    Loslegen →
+                    Get Started →
                   </button>
                 )}
               </div>
@@ -863,7 +863,7 @@ export default function App() {
               <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",fontSize:12,color:"var(--text-sub)",fontFamily:"Inter"}}>
                 <input type="checkbox" checked={onboardingSkip} onChange={e=>setOnboardingSkip(e.target.checked)}
                   style={{accentColor:"var(--accent)",cursor:"pointer"}}/>
-                Nicht mehr anzeigen
+                Don't show again
               </label>
             </div>
           </div>
