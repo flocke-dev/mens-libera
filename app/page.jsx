@@ -142,6 +142,7 @@ export default function App() {
   const [onboardingStep,  setOnboardingStep]  = useState(0);
   const [showSourceModal, setShowSourceModal] = useState(null);
   const [sourceFilter,    setSourceFilter]    = useState(null);
+  const [speaking,        setSpeaking]        = useState(false);
   const [onboardingSkip,  setOnboardingSkip]  = useState(false);
   const panelRef = useRef(null);
 
@@ -628,16 +629,32 @@ export default function App() {
                     </div>
                   : result&&!result.error
                     ? <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
-                        {/* Ampel */}
-                        <div style={{textAlign:"center",paddingTop:4}}>
-                          <div style={{
-                            width:72,height:72,borderRadius:"50%",margin:"0 auto 10px",
-                            background:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171",
-                            boxShadow:`0 0 30px ${result.scores?.panik<=3?"#4ade8055":result.scores?.panik<=6?"#fbbf2455":"#f8717155"}`,
-                          }}/>
-                          <div style={{fontSize:20,fontWeight:700,letterSpacing:3,fontFamily:"'Inter',sans-serif",color:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}}>
-                            {result.scores?.panik<=3?"LOW RISK":result.scores?.panik<=6?"MODERATE":"HIGH ALERT"}
+                        {/* Ampel + Listen Button */}
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,paddingTop:4}}>
+                          <div style={{textAlign:"center"}}>
+                            <div style={{
+                              width:72,height:72,borderRadius:"50%",margin:"0 auto 10px",
+                              background:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171",
+                              boxShadow:`0 0 30px ${result.scores?.panik<=3?"#4ade8055":result.scores?.panik<=6?"#fbbf2455":"#f8717155"}`,
+                            }}/>
+                            <div style={{fontSize:20,fontWeight:700,letterSpacing:3,fontFamily:"'Inter',sans-serif",color:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}}>
+                              {result.scores?.panik<=3?"LOW RISK":result.scores?.panik<=6?"MODERATE":"HIGH ALERT"}
+                            </div>
                           </div>
+                          <button onClick={()=>{
+                            if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return;}
+                            const audioText=`${result.titel}. Panic level: ${result.scores?.panik} out of 10. ${result.fakten?.[0]}. ${result.urteil}. Missing perspectives: ${result.fehlt?.[0]}.`;
+                            const utterance=new SpeechSynthesisUtterance(audioText);
+                            utterance.lang="en-US";
+                            utterance.rate=0.95;
+                            utterance.onend=()=>setSpeaking(false);
+                            utterance.onerror=()=>setSpeaking(false);
+                            window.speechSynthesis.speak(utterance);
+                            setSpeaking(true);
+                          }} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,background:"none",border:`1px solid var(--accent)`,color:"var(--accent)",padding:"10px 16px",borderRadius:6,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,letterSpacing:0.5,flexShrink:0}}>
+                            <span style={{fontSize:20}}>{speaking?"⏸":"▶"}</span>
+                            {speaking?"Stop":"Listen"}
+                          </button>
                         </div>
                         {/* Bullet points */}
                         <div style={{display:"flex",flexDirection:"column",gap:8,padding:"12px 14px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4}}>
