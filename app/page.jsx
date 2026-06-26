@@ -150,6 +150,7 @@ export default function App() {
   const [showDigestModal,   setShowDigestModal]    = useState(false);
   const [digest,            setDigest]            = useState(null);
   const [digestLoading,     setDigestLoading]     = useState(false);
+  const [savedSearches,     setSavedSearches]     = useState([]);
   const panelRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
@@ -169,6 +170,32 @@ export default function App() {
   useEffect(()=>{
     try{const saved=JSON.parse(localStorage.getItem('interests')||'[]');setInterests(saved);}catch{}
   },[]);
+
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem('ml-saved-searches')||'[]');setSavedSearches(saved);}catch{}
+  },[]);
+
+  function saveSearch(){
+    const parts=[];
+    if(q)parts.push(q);
+    if(cat!=="alle")parts.push(CATS.find(c=>c.id===cat)?.label||cat);
+    if(bias!=="alle")parts.push(bias.charAt(0).toUpperCase()+bias.slice(1));
+    const label=parts.join(" · ")||"Filter";
+    const entry={query:q,cat,bias,label,ts:Date.now()};
+    const next=[entry,...savedSearches.filter(s=>s.label!==label)].slice(0,5);
+    setSavedSearches(next);
+    localStorage.setItem('ml-saved-searches',JSON.stringify(next));
+  }
+
+  function deleteSearch(ts){
+    const next=savedSearches.filter(s=>s.ts!==ts);
+    setSavedSearches(next);
+    localStorage.setItem('ml-saved-searches',JSON.stringify(next));
+  }
+
+  function applySearch(s){
+    setQ(s.query);setCat(s.cat);setBias(s.bias);
+  }
 
   useEffect(()=>{
     if(!result?.scores?.panik) return;
@@ -344,12 +371,33 @@ export default function App() {
           <div className="ml-search" style={{flex:1,maxWidth:380,position:"relative"}}>
             <svg style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:"var(--text-sub)"}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search…"
-              style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"7px 32px 7px 32px",fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:4}}/>
-            {q.length>0&&(
-              <button onClick={()=>setQ("")}
-                style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#c8a96e",fontSize:18,lineHeight:1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minWidth:44,minHeight:44,padding:0}}>
-                ×
-              </button>
+              style={{width:"100%",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,color:"var(--text)",padding:"7px 52px 7px 32px",fontSize:13,fontFamily:"'Inter',sans-serif",borderRadius:4}}/>
+            <div style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",display:"flex",alignItems:"center"}}>
+              {q.length>0&&(
+                <button onClick={saveSearch} title="Save this search"
+                  style={{background:"none",border:"none",color:"var(--accent)",fontSize:15,lineHeight:1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",width:26,height:44,padding:0}}>
+                  🔖
+                </button>
+              )}
+              {q.length>0&&(
+                <button onClick={()=>setQ("")}
+                  style={{background:"none",border:"none",color:"#c8a96e",fontSize:18,lineHeight:1,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minWidth:26,minHeight:44,padding:0}}>
+                  ×
+                </button>
+              )}
+            </div>
+            {/* Saved searches dropdown */}
+            {savedSearches.length>0&&(
+              <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,zIndex:200,padding:"6px 6px",display:"flex",flexWrap:"wrap",gap:5}}>
+                {savedSearches.map(s=>(
+                  <div key={s.ts} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",background:"var(--bg)",border:`1px solid ${T.border2}`,borderRadius:20,fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>
+                    <button onClick={()=>applySearch(s)} style={{background:"none",border:"none",color:"var(--accent)",cursor:"pointer",padding:0,fontSize:11,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:3}}>
+                      🔖 {s.label}
+                    </button>
+                    <button onClick={e=>{e.stopPropagation();deleteSearch(s.ts);}} style={{background:"none",border:"none",color:"var(--text-sub)",cursor:"pointer",padding:0,fontSize:13,lineHeight:1,display:"flex",alignItems:"center"}}>×</button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
