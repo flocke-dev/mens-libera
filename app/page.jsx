@@ -385,6 +385,9 @@ export default function App() {
         @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
         @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(248,113,113,0.4)}70%{box-shadow:0 0 0 20px rgba(248,113,113,0)}100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}}
         @keyframes pulse-ring-mod{0%{box-shadow:0 0 0 0 rgba(251,191,36,0.35)}70%{box-shadow:0 0 0 16px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
+        @keyframes bar-fill{from{width:0}to{width:var(--bar-w)}}
+        .score-card{transition:transform 0.2s ease,box-shadow 0.2s ease;}
+        .score-card:hover{transform:scale(1.03);box-shadow:0 4px 16px rgba(0,0,0,0.2);}
         .fi{animation:fadeIn 0.3s ease both}
         .row:hover .row-title{color:${T.textHigh} !important}
         .row:hover{background:${T.hoverBg} !important}
@@ -876,10 +879,14 @@ export default function App() {
                         </div>
                         {/* 4 Scores */}
                         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
-                          {[["PANIC",result.scores?.panik],["BIAS",result.scores?.einseitigkeit],["EMOTION",result.scores?.emotionalisierung],["FACTS",result.scores?.faktendichte]].map(([lbl,val])=>(
-                            <div key={lbl} style={{textAlign:"center",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,padding:"12px 4px"}}>
+                          {[["PANIC","🚨",result.scores?.panik],["BIAS","⚖️",result.scores?.einseitigkeit],["EMOTION","🎭",result.scores?.emotionalisierung],["FACTS","✓",result.scores?.faktendichte]].map(([lbl,icon,val])=>(
+                            <div key={lbl} className="score-card" style={{textAlign:"center",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,padding:"12px 4px 10px",cursor:"default"}}>
+                              <div style={{fontSize:16,lineHeight:1,marginBottom:6}}>{icon}</div>
                               <div style={{fontSize:32,fontWeight:700,color:panikColor(val),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{val}</div>
-                              <div style={{fontSize:9,letterSpacing:1.5,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:4}}>{lbl}</div>
+                              <div style={{fontSize:9,letterSpacing:1.5,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",margin:"5px 0 8px"}}>{lbl}</div>
+                              <div style={{height:3,background:T.border2,borderRadius:2,overflow:"hidden",margin:"0 8px"}}>
+                                <div style={{"--bar-w":`${(val/10)*100}%`,height:"100%",background:panikColor(val),borderRadius:2,animation:"bar-fill 1s ease forwards",animationDelay:"0.3s",width:0}}/>
+                              </div>
                             </div>
                           ))}
                         </div>
