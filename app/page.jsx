@@ -390,7 +390,9 @@ export default function App() {
         .score-card:hover{transform:scale(1.03);box-shadow:0 4px 16px rgba(0,0,0,0.2);}
         .fi{animation:fadeIn 0.3s ease both}
         .row:hover .row-title{color:${T.textHigh} !important}
-        .row:hover{background:${T.hoverBg} !important}
+        .row:hover{background:${T.hoverBg} !important;box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+        @keyframes badge-in{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}
+        .analyzed-badge{animation:badge-in 0.35s ease both;}
         a{text-decoration:none;color:inherit;}
         input::placeholder{color:var(--text-sub);}
         input:focus{outline:none;border-color:var(--text-sub) !important;}
@@ -576,7 +578,7 @@ export default function App() {
                     const avg=srcs.reduce((a,s)=>a+s.biasScore,0)/Math.max(srcs.length,1);
                     const pct=((avg+3)/6)*100;
                     return (
-                      <div key={i} onClick={()=>pick(g)} style={{minWidth:176,maxWidth:176,flexShrink:0,padding:"10px 12px",border:`1px solid ${isSelected?"var(--accent)":T.border2}`,borderRadius:6,cursor:"pointer",background:isSelected?"var(--accent-subtle)":"var(--bg-panel)",transition:"border-color 0.15s,background 0.15s",display:"flex",flexDirection:"column",gap:7}}>
+                      <div key={i} onClick={()=>pick(g)} style={{minWidth:176,maxWidth:176,flexShrink:0,padding:"10px 12px",border:`1px solid ${isSelected?"var(--accent)":T.border2}`,borderRadius:12,cursor:"pointer",background:isSelected?"var(--accent-subtle)":"var(--bg-panel)",transition:"border-color 0.15s,background 0.15s",display:"flex",flexDirection:"column",gap:7}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                           <div style={{display:"flex",alignItems:"center",gap:5}}>
                             <span style={{fontSize:18,fontWeight:700,color:"var(--accent)",fontFamily:"'Inter',sans-serif",lineHeight:1}}>{srcs.length}</span>
@@ -610,7 +612,7 @@ export default function App() {
             const scores=srcs.map(s=>s.biasScore);
             const isBlindspot=srcs.length>=2&&(scores.every(x=>x<0)||scores.every(x=>x>0));
             return (
-              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s",paddingLeft:isSelected?10:0,borderLeft:isSelected?"2px solid var(--accent)":"2px solid transparent",marginLeft:-2,opacity:isRead&&!isSelected?0.7:1}}>
+              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0 18px 12px",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s,box-shadow 0.15s",borderLeft:`3px solid ${isSelected?"var(--accent)":BIAS[srcs[0]?.bias]?.dot||T.border2}`,marginLeft:0,opacity:isRead&&!isSelected?0.7:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
                   <div style={{display:"flex",gap:3}}>
                     {srcs.map(s=>(
@@ -630,7 +632,7 @@ export default function App() {
                   <p className="row-title" style={{fontSize:17,lineHeight:1.6,color:isSelected?T.textHigh:isRead?"var(--text-sub)":T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,margin:0,transition:"color 0.15s"}}>
                     {g[0].title}
                   </p>
-                  {isRead&&<span style={{color:"#4ade80",fontSize:11,fontFamily:"'Inter',sans-serif",flexShrink:0}}>✓ Analyzed</span>}
+                  {isRead&&<span className="analyzed-badge" style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:"#4ade8022",border:"1px solid #4ade8066",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#4ade80",fontWeight:700}}>✓</span>}
                 </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
