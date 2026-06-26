@@ -142,8 +142,11 @@ export default function App() {
   const [onboardingStep,  setOnboardingStep]  = useState(0);
   const [showSourceModal, setShowSourceModal] = useState(null);
   const [sourceFilter,    setSourceFilter]    = useState(null);
-  const [speaking,        setSpeaking]        = useState(false);
-  const [onboardingSkip,  setOnboardingSkip]  = useState(false);
+  const [speaking,          setSpeaking]          = useState(false);
+  const [onboardingSkip,    setOnboardingSkip]    = useState(false);
+  const [interests,         setInterests]         = useState([]);
+  const [showPrefsModal,    setShowPrefsModal]     = useState(false);
+  const [prefsDraft,        setPrefsDraft]         = useState([]);
   const panelRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
@@ -158,6 +161,10 @@ export default function App() {
   useEffect(()=>{
     const seen = localStorage.getItem('ml-onboarding');
     if(!seen) setShowOnboarding(true);
+  },[]);
+
+  useEffect(()=>{
+    try{const saved=JSON.parse(localStorage.getItem('interests')||'[]');setInterests(saved);}catch{}
   },[]);
 
   useEffect(()=>{
@@ -237,6 +244,17 @@ export default function App() {
     if(cat!=="alle"&&cat!=="blindspot"&&!g.some(a=>a.cat===cat))return false;
     if(q&&!g[0].title.toLowerCase().includes(q.toLowerCase()))return false;
     return true;
+  }).sort((a,b)=>{
+    if(!interests.length)return 0;
+    const showBS=interests.includes("blindspot");
+    const cats=interests.filter(i=>i!=="blindspot");
+    const score=g=>{
+      const srcs=srcsOf(g);const sc=srcs.map(s=>s.biasScore);
+      const isBS=srcs.length>=2&&(sc.every(x=>x<0)||sc.every(x=>x>0));
+      const matchesCat=!cats.length||g.some(a=>cats.includes(a.cat));
+      return(matchesCat?2:0)+(showBS&&isBS?1:0);
+    };
+    return score(b)-score(a);
   });
 
   const TABS=[{id:"snapshot",label:"Snapshot"},{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"}];
@@ -330,6 +348,11 @@ export default function App() {
           {history.length>0&&(
             <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>{history.length} Analyses</div>
           )}
+          {/* Preferences */}
+          <button onClick={()=>{setPrefsDraft(interests);setShowPrefsModal(true);}} title="Personalize Feed"
+            style={{background:"none",border:`1px solid ${interests.length?T.accentAlt:T.border2}`,color:interests.length?"var(--accent)":"var(--text-sub)",width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:15}}>
+            ⚙
+          </button>
           {/* Theme toggle */}
           <button onClick={()=>setDark(d=>!d)} title={dark?"Light Mode":"Dark Mode"}
             style={{background:"none",border:`1px solid ${T.border2}`,color:"var(--text-sub)",width:32,height:32,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -897,6 +920,62 @@ export default function App() {
         </div>
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
+
+      {/* ── PREFERENCES MODAL ── */}
+      {showPrefsModal&&(()=>{
+        const OPTIONS=[
+          {id:"politics",  label:"Politics"},
+          {id:"economy",   label:"Economy"},
+          {id:"world",     label:"World"},
+          {id:"technology",label:"Technology"},
+          {id:"society",   label:"Society"},
+          {id:"blindspot", label:"Show Blindspots first"},
+        ];
+        const toggle=id=>setPrefsDraft(d=>d.includes(id)?d.filter(x=>x!==id):[...d,id]);
+        const save=()=>{setInterests(prefsDraft);localStorage.setItem('interests',JSON.stringify(prefsDraft));setShowPrefsModal(false);};
+        return (
+          <div onClick={()=>setShowPrefsModal(false)}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:"100%",maxWidth:380,borderRadius:4}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div>
+                  <div style={{fontSize:16,fontWeight:600,color:"var(--text)",fontFamily:"'EB Garamond',Georgia,serif"}}>What topics interest you?</div>
+                  <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:3}}>Your feed will prioritize these categories.</div>
+                </div>
+                <button onClick={()=>setShowPrefsModal(false)} style={{background:"none",border:"none",color:"var(--text-sub)",fontSize:20,lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:2,marginBottom:24}}>
+                {OPTIONS.map((o,i)=>{
+                  const checked=prefsDraft.includes(o.id);
+                  const isBS=o.id==="blindspot";
+                  return (
+                    <label key={o.id} onClick={()=>toggle(o.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:4,cursor:"pointer",background:checked?"var(--accent-subtle)":"transparent",border:`1px solid ${checked?"var(--accent)":T.border2}`,transition:"all 0.15s",marginTop:isBS?8:0}}>
+                      {isBS&&<div style={{height:1,position:"absolute",left:28,right:28,background:T.border2}}/>}
+                      <div style={{width:18,height:18,borderRadius:3,border:`2px solid ${checked?"var(--accent)":T.border2}`,background:checked?"var(--accent)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
+                        {checked&&<span style={{color:"var(--bg)",fontSize:11,fontWeight:700,lineHeight:1}}>✓</span>}
+                      </div>
+                      <span style={{fontSize:14,color:checked?T.textHigh:"var(--text-sub)",fontFamily:"'Inter',sans-serif",fontWeight:checked?500:400,transition:"color 0.15s"}}>{o.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                {interests.length>0&&(
+                  <button onClick={()=>{setInterests([]);setPrefsDraft([]);localStorage.removeItem('interests');setShowPrefsModal(false);}}
+                    style={{flex:1,background:"none",border:`1px solid ${T.border2}`,color:"var(--text-sub)",padding:"10px 0",fontSize:13,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3}}>
+                    Clear
+                  </button>
+                )}
+                <button onClick={save}
+                  style={{flex:2,background:"var(--accent)",color:"var(--bg)",border:"none",padding:"10px 0",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                  Save Preferences
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── SOURCE MODAL ── */}
       {showSourceModal&&(()=>{
