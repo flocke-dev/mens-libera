@@ -383,6 +383,8 @@ export default function App() {
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
         @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+        @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(248,113,113,0.4)}70%{box-shadow:0 0 0 20px rgba(248,113,113,0)}100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}}
+        @keyframes pulse-ring-mod{0%{box-shadow:0 0 0 0 rgba(251,191,36,0.35)}70%{box-shadow:0 0 0 16px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
         .fi{animation:fadeIn 0.3s ease both}
         .row:hover .row-title{color:${T.textHigh} !important}
         .row:hover{background:${T.hoverBg} !important}
@@ -796,16 +798,29 @@ export default function App() {
                     ? <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
                         {/* Ampel + Listen Button */}
                         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,paddingTop:4}}>
-                          <div style={{textAlign:"center"}}>
-                            <div style={{
-                              width:72,height:72,borderRadius:"50%",margin:"0 auto 10px",
-                              background:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171",
-                              boxShadow:`0 0 30px ${result.scores?.panik<=3?"#4ade8055":result.scores?.panik<=6?"#fbbf2455":"#f8717155"}`,
-                            }}/>
-                            <div style={{fontSize:20,fontWeight:700,letterSpacing:3,fontFamily:"'Inter',sans-serif",color:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}}>
-                              {result.scores?.panik<=3?"LOW RISK":result.scores?.panik<=6?"MODERATE":"HIGH ALERT"}
-                            </div>
-                          </div>
+                          {(()=>{
+                            const p=result.scores?.panik;
+                            const isHigh=p>=7,isMod=p>=4&&p<=6,isLow=p<=3;
+                            const col=isHigh?"#f87171":isMod?"#fbbf24":"#4ade80";
+                            const anim=isHigh?"pulse-ring 1.5s infinite":isMod?"pulse-ring-mod 3s infinite":"none";
+                            const label=isHigh?"HIGH ALERT":isMod?"MODERATE":"LOW RISK";
+                            return (
+                              <div style={{textAlign:"center"}}>
+                                <div style={{
+                                  width:120,height:120,borderRadius:"50%",margin:"0 auto 12px",
+                                  background:col,
+                                  boxShadow:`0 0 40px ${col}44`,
+                                  animation:anim,
+                                  display:"flex",alignItems:"center",justifyContent:"center",
+                                }}>
+                                  <span style={{fontSize:36,fontWeight:800,color:"rgba(0,0,0,0.55)",fontFamily:"'Inter',sans-serif",lineHeight:1}}>{p}</span>
+                                </div>
+                                <div style={{fontSize:18,fontWeight:700,letterSpacing:4,fontFamily:"'Inter',sans-serif",color:col}}>
+                                  {label}
+                                </div>
+                              </div>
+                            );
+                          })()}
                           <button onClick={()=>{
                             if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return;}
                             const audioText=`${result.titel}. Panic level: ${result.scores?.panik} out of 10. ${result.fakten?.[0]}. ${result.urteil}. Missing perspectives: ${result.fehlt?.[0]}.`;
