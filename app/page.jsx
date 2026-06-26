@@ -50,6 +50,32 @@ const BIAS = {
 
 const CRED = { high:"#4ade80", medium:"#fbbf24", low:"#f87171" };
 
+const SOURCE_INFO = {
+  reuters:    { desc:"Reuters is one of the world's largest news agencies, supplying unbiased news to media organizations globally since 1851. It is renowned for strict factual standards and international reach.", web:"https://www.reuters.com" },
+  bbc:        { desc:"The BBC is the UK's public broadcaster, operating worldwide news services since 1922. It is widely regarded for editorial independence and comprehensive international coverage.", web:"https://www.bbc.com/news" },
+  apnews:     { desc:"The Associated Press is an independent global news organization founded in 1846. It is among the most trusted sources of fast, accurate, and unbiased journalism.", web:"https://apnews.com" },
+  npr:        { desc:"National Public Radio is a non-profit American media organization known for in-depth news, analysis, and cultural programming. It is funded by a mix of member stations and public donations.", web:"https://www.npr.org" },
+  guardian:   { desc:"The Guardian is a British daily newspaper known for progressive investigative journalism, fully owned by a trust that protects its editorial independence. It was founded in 1821 in Manchester.", web:"https://www.theguardian.com" },
+  nyt:        { desc:"The New York Times is one of the world's most influential newspapers, founded in 1851. It is known for deep investigative reporting and broad coverage of global affairs.", web:"https://www.nytimes.com" },
+  wapo:       { desc:"The Washington Post is a major American daily based in Washington D.C., known for political journalism and breaking national news. It has been owned by Jeff Bezos since 2013.", web:"https://www.washingtonpost.com" },
+  independent:{ desc:"The Independent is a British digital newspaper founded in 1986 with a focus on liberal politics and global news. It is known for opinionated commentary and an international outlook.", web:"https://www.independent.co.uk" },
+  msnbc:      { desc:"MSNBC is an American news channel with a strongly progressive editorial lean, owned by NBCUniversal. It focuses primarily on U.S. politics and liberal commentary.", web:"https://www.msnbc.com" },
+  huffpost:   { desc:"HuffPost is a progressive American news and opinion website founded in 2005. It covers politics, culture, and lifestyle from a clearly left-leaning perspective.", web:"https://www.huffpost.com" },
+  mother:     { desc:"Mother Jones is a nonprofit American magazine known for investigative reporting with a clear progressive editorial stance. It has broken major stories on corporate and government accountability.", web:"https://www.motherjones.com" },
+  wsj:        { desc:"The Wall Street Journal is one of the most widely read U.S. newspapers, founded in 1889. It focuses on business and financial news with a center-right editorial perspective.", web:"https://www.wsj.com" },
+  economist:  { desc:"The Economist is a British weekly magazine covering politics, business, and world affairs since 1843. It advocates for free markets and liberal democracy from a center-right standpoint.", web:"https://www.economist.com" },
+  telegraph:  { desc:"The Daily Telegraph is a major British daily newspaper with a traditional conservative editorial stance. It has extensive coverage of UK politics and international affairs.", web:"https://www.telegraph.co.uk" },
+  spectator:  { desc:"The Spectator is the world's oldest continuously published magazine, founded in 1828. It publishes conservative and contrarian opinion alongside cultural commentary.", web:"https://www.spectator.co.uk" },
+  foxnews:    { desc:"Fox News is a major American cable news network with a strong conservative editorial stance, launched in 1996. It consistently attracts the largest U.S. cable news audience.", web:"https://www.foxnews.com" },
+  nypost:     { desc:"The New York Post is a right-leaning American tabloid founded in 1801, known for sensationalist headlines and conservative political coverage. It is one of the oldest U.S. newspapers.", web:"https://nypost.com" },
+  breitbart:  { desc:"Breitbart News is a far-right American news and opinion website founded in 2007. It is closely aligned with nationalist and populist political movements.", web:"https://www.breitbart.com" },
+  dailywire:  { desc:"The Daily Wire is a far-right American conservative media company founded by Ben Shapiro in 2015. It produces news commentary and podcasts from a strongly conservative perspective.", web:"https://www.dailywire.com" },
+  aljazeera:  { desc:"Al Jazeera is a Qatari-funded international news network launched in 1996. It offers extensive Middle Eastern coverage and is known for providing a non-Western global perspective.", web:"https://www.aljazeera.com" },
+  dw:         { desc:"Deutsche Welle is Germany's international public broadcaster, providing news in over 30 languages. It is funded by the German government and known for balanced factual reporting.", web:"https://www.dw.com" },
+  france24:   { desc:"France 24 is a French international news channel launched in 2006, providing 24-hour coverage in French, English, and Arabic. It offers a distinctly European perspective on global events.", web:"https://www.france24.com" },
+  rt:         { desc:"RT (formerly Russia Today) is a Russian state-funded international news network. It is widely considered a vehicle for Kremlin messaging and has been restricted or banned in several countries.", web:"https://www.rt.com" },
+};
+
 const RSS = "https://api.rss2json.com/v1/api.json?rss_url=";
 const STOP = new Set(["the","and","that","this","with","from","have","been","will","were","they","their","there","when","what","which","about","would","could","should","more","also","than","into","over","after","before","being","some","such","even","said","says","just","like","very","only","both","then","them","these","those","other","where","while","since","still","well","does","each","most","make","many","much","your","here","come","back","news","year","time","people","first","last","made","take","want","used","need","part","days","week","months","years","world","according","including","following","during","within","without","between","through","against","around","under","until","because"]);
 
@@ -114,6 +140,8 @@ export default function App() {
   const [showShareModal,  setShowShareModal]  = useState(false);
   const [showOnboarding,  setShowOnboarding]  = useState(false);
   const [onboardingStep,  setOnboardingStep]  = useState(0);
+  const [showSourceModal, setShowSourceModal] = useState(null);
+  const [sourceFilter,    setSourceFilter]    = useState(null);
   const [onboardingSkip,  setOnboardingSkip]  = useState(false);
   const panelRef = useRef(null);
 
@@ -200,6 +228,7 @@ export default function App() {
 
   const filtered=groups.filter(g=>{
     const srcs=srcsOf(g);
+    if(sourceFilter&&!g.some(a=>a.sid===sourceFilter))return false;
     if(bias==="blindspot"){const sc=srcs.map(s=>s.biasScore);if(!((sc.every(x=>x<0)||sc.every(x=>x>0))&&g.length>=2))return false;}
     else if(bias==="left"&&!srcs.some(s=>s.biasScore<-1))return false;
     else if(bias==="right"&&!srcs.some(s=>s.biasScore>1))return false;
@@ -348,6 +377,19 @@ export default function App() {
             </div>
           )}
 
+          {/* Source filter active indicator */}
+          {sourceFilter&&(()=>{
+            const src=SOURCES.find(s=>s.id===sourceFilter);
+            return (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",marginBottom:8,background:`${BIAS[src?.bias]?.dot||"#c8a96e"}11`,border:`1px solid ${BIAS[src?.bias]?.dot||"#c8a96e"}44`,borderRadius:4}}>
+                <span style={{fontSize:11,color:BIAS[src?.bias]?.dot||"#c8a96e",fontFamily:"'Inter',sans-serif",fontWeight:600,letterSpacing:0.5}}>
+                  Filtered: {src?.label}
+                </span>
+                <button onClick={()=>setSourceFilter(null)} style={{background:"none",border:"none",color:"var(--text-sub)",fontSize:16,lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+              </div>
+            );
+          })()}
+
           {/* Trending */}
           {!loading&&filtered.length>0&&(()=>{
             const trending=[...filtered].sort((a,b)=>srcsOf(b).length-srcsOf(a).length).slice(0,3);
@@ -421,7 +463,7 @@ export default function App() {
                 </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
-                    <span key={s.id} style={{fontSize:13,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.7}}>
+                    <span key={s.id} onClick={e=>{e.stopPropagation();setShowSourceModal(s);}} style={{fontSize:13,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.7,cursor:"pointer"}}>
                       {s.label}{s.credibility!=="high"&&<span style={{color:CRED[s.credibility],marginLeft:2}}>·</span>}
                     </span>
                   ))}
@@ -540,13 +582,15 @@ export default function App() {
                 </div>
                 {/* Source links */}
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {sel.map((a,i)=>(
-                    <a key={i} href={a.link} target="_blank" rel="noreferrer"
-                      style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",border:`1px solid ${BIAS[a.bias].dot}33`,borderRadius:20,fontSize:11,color:BIAS[a.bias].dot,fontFamily:"'Inter',sans-serif",background:`${BIAS[a.bias].dot}08`}}>
-                      {a.slabel}
-                      <span style={{opacity:0.4,fontSize:9}}>↗</span>
-                    </a>
-                  ))}
+                  {sel.map((a,i)=>{
+                    const src=SOURCES.find(s=>s.id===a.sid);
+                    return (
+                      <div key={i} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",border:`1px solid ${BIAS[a.bias].dot}33`,borderRadius:20,fontSize:11,color:BIAS[a.bias].dot,fontFamily:"'Inter',sans-serif",background:`${BIAS[a.bias].dot}08`}}>
+                        <span onClick={e=>{e.stopPropagation();if(src)setShowSourceModal(src);}} style={{cursor:"pointer"}}>{a.slabel}</span>
+                        <a href={a.link} target="_blank" rel="noreferrer" style={{opacity:0.4,fontSize:9,color:BIAS[a.bias].dot}}>↗</a>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -836,6 +880,65 @@ export default function App() {
         </div>
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
+
+      {/* ── SOURCE MODAL ── */}
+      {showSourceModal&&(()=>{
+        const s=showSourceModal;
+        const info=SOURCE_INFO[s.id]||{desc:"No description available.",web:"#"};
+        const biasColor=BIAS[s.bias]?.dot||"#94a3b8";
+        const pct=((s.biasScore+3)/6)*100;
+        const credLabel={high:"High",medium:"Medium",low:"Low"}[s.credibility];
+        return (
+          <div onClick={()=>setShowSourceModal(null)}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"var(--bg-panel)",border:"1px solid var(--border)",borderTop:"3px solid var(--accent)",padding:28,width:"100%",maxWidth:400,borderRadius:4}}>
+
+              {/* Header */}
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:18}}>
+                <div>
+                  <div style={{fontSize:20,fontWeight:600,color:"var(--text)",fontFamily:"'EB Garamond',Georgia,serif",marginBottom:4}}>{s.label}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:biasColor}}/>
+                    <span style={{fontSize:11,color:biasColor,fontFamily:"'Inter',sans-serif",fontWeight:600,letterSpacing:0.5}}>{BIAS[s.bias]?.label}</span>
+                    <span style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>·</span>
+                    <span style={{fontSize:11,color:CRED[s.credibility],fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Credibility: {credLabel}</span>
+                  </div>
+                </div>
+                <button onClick={()=>setShowSourceModal(null)} style={{background:"none",border:"none",color:"var(--text-sub)",fontSize:20,lineHeight:1,cursor:"pointer",padding:"0 4px",flexShrink:0}}>×</button>
+              </div>
+
+              {/* Description */}
+              <p style={{fontSize:14,lineHeight:1.75,color:"var(--text-sub)",fontFamily:"'EB Garamond',Georgia,serif",marginBottom:18}}>{info.desc}</p>
+
+              {/* Political placement */}
+              <div style={{marginBottom:18}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:9,letterSpacing:1.5,fontFamily:"'Inter',sans-serif",marginBottom:6}}>
+                  <span style={{color:"#818cf8"}}>LEFT</span>
+                  <span style={{color:"var(--text-sub)"}}>POLITICAL PLACEMENT</span>
+                  <span style={{color:"#f87171"}}>RIGHT</span>
+                </div>
+                <div style={{position:"relative",height:14,background:"linear-gradient(to right,#818cf8,#3b82f6,#60a5fa,#94a3b8,#fb923c,#f87171,#fbbf24)",borderRadius:7}}>
+                  <div style={{position:"absolute",top:-3,left:`${Math.max(2,Math.min(98,pct))}%`,width:5,height:20,background:"white",borderRadius:3,transform:"translateX(-50%)",boxShadow:"0 0 6px rgba(0,0,0,0.5)"}}/>
+                </div>
+                <div style={{textAlign:"center",marginTop:6,fontSize:11,color:biasColor,fontFamily:"'Inter',sans-serif",fontWeight:600}}>{BIAS[s.bias]?.label} · Score {s.biasScore > 0 ? "+":""}{s.biasScore}</div>
+              </div>
+
+              {/* Actions */}
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <button onClick={()=>{setSourceFilter(s.id);setShowSourceModal(null);}}
+                  style={{width:"100%",background:"var(--accent)",color:"var(--bg)",border:"none",padding:"10px 0",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                  See all articles from {s.label}
+                </button>
+                <a href={info.web} target="_blank" rel="noreferrer"
+                  style={{display:"block",textAlign:"center",width:"100%",background:"none",color:"var(--text-sub)",border:"1px solid var(--border)",padding:"9px 0",fontSize:13,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3,boxSizing:"border-box"}}>
+                  Visit official website ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── SHARE MODAL ── */}
       {showShareModal&&result&&(()=>{
