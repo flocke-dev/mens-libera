@@ -155,6 +155,8 @@ export default function App() {
   const [showNotifBanner,   setShowNotifBanner]   = useState(false);
   const [compareSlots,      setCompareSlots]      = useState([]);
   const [showCompare,       setShowCompare]       = useState(false);
+  const [timeline,          setTimeline]          = useState([]);
+  const [hoverIdx,          setHoverIdx]          = useState(null);
   const panelRef = useRef(null);
   const notifiedTitles = useRef(new Set());
 
@@ -338,6 +340,7 @@ export default function App() {
       clearInterval(iv);setResult(p);setTab("snapshot");
       if(g){setCache(prev=>({...prev,[g[0].title]:p}));setRead(prev=>new Set([...prev,g[0].title]));}
       setHistory(h=>[{title:p.titel,panik:p.scores?.panik,g,result:p,ts:Date.now()},...h].slice(0,15));
+      setTimeline(prev=>[...prev,{ts:Date.now(),panik:p.scores?.panik||0,sources:g?g.length:1,title:p.titel}]);
     }catch{clearInterval(iv);setResult({error:true});}
     finally{setAnalysing(false);}
   }
@@ -369,7 +372,7 @@ export default function App() {
     return score(b)-score(a);
   });
 
-  const TABS=[{id:"snapshot",label:"Snapshot"},{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"}];
+  const TABS=[{id:"snapshot",label:"Snapshot"},{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"},{id:"timeline",label:"Timeline"}];
 
   return (
     <div className="ml-root" style={{background:"var(--bg)",minHeight:"100vh",color:"var(--text)",fontFamily:"'EB Garamond', Georgia, serif"}}>
@@ -767,7 +770,7 @@ export default function App() {
 
               {/* Tabs */}
               <div className="ml-tabs" style={{display:"flex",gap:0,borderBottom:`1px solid ${T.border2}`,marginBottom:24}}>
-                {TABS.map(t=>(
+                {TABS.filter(t=>t.id!=="timeline"||timeline.length>=2).map(t=>(
                   <button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",borderBottom:tab===t.id?"2px solid var(--accent)":"2px solid transparent",marginBottom:-1,padding:"8px 16px",fontSize:12,fontFamily:"'Inter',sans-serif",color:tab===t.id?T.textHigh:"var(--text-sub)",cursor:"pointer",fontWeight:tab===t.id?500:400,transition:"all 0.15s",whiteSpace:"nowrap"}}>
                     {t.label}
                   </button>
@@ -1031,6 +1034,80 @@ export default function App() {
                   <p style={{fontSize:10,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:16}}>AI-generated. Does not replace independent research.</p>
                 </div>
               )}
+
+              {/* ── TIMELINE ── */}
+              {tab==="timeline"&&timeline.length>=2&&(()=>{
+                const n=timeline.length;
+                const getX=i=>n>1?(i/(n-1))*100:50;
+                const getY=v=>100-((v-1)/9)*100;
+                const linePts=timeline.map((pt,i)=>`${getX(i)},${getY(pt.panik)}`).join(" ");
+                const areaPts=[...timeline.map((pt,i)=>`${getX(i)},${getY(pt.panik)}`),`${getX(n-1)},100`,`0,100`].join(" ");
+                return (
+                  <div className="fi">
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:4}}>PANIC SCORE HISTORY</div>
+                    <div style={{fontSize:12,color:T.textLow,fontFamily:"'EB Garamond',Georgia,serif",marginBottom:20,fontStyle:"italic"}}>How coverage intensity changed across your session</div>
+
+                    {/* Chart */}
+                    <div style={{position:"relative",height:180,marginBottom:24}}>
+                      {/* Y-axis labels */}
+                      <div style={{position:"absolute",left:0,top:0,bottom:24,width:22,display:"flex",flexDirection:"column",justifyContent:"space-between",alignItems:"flex-end",paddingRight:5}}>
+                        {[10,7,4,1].map(v=><span key={v} style={{fontSize:8,color:T.textLow,fontFamily:"'Inter',sans-serif",lineHeight:1}}>{v}</span>)}
+                      </div>
+                      {/* Chart area */}
+                      <div style={{position:"absolute",left:26,right:0,top:0,bottom:24,border:`1px solid ${T.border2}`,borderRadius:2,overflow:"visible",background:"var(--bg-panel)"}}>
+                        {/* Grid lines */}
+                        {[0,33,66,100].map(pct=>(
+                          <div key={pct} style={{position:"absolute",top:`${pct}%`,left:0,right:0,height:1,background:T.border2,opacity:0.3}}/>
+                        ))}
+                        {/* SVG line + fill */}
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{position:"absolute",inset:0,width:"100%",height:"100%",overflow:"visible"}}>
+                          <defs>
+                            <linearGradient id="tlGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#c8a96e" stopOpacity="0.25"/>
+                              <stop offset="100%" stopColor="#c8a96e" stopOpacity="0"/>
+                            </linearGradient>
+                          </defs>
+                          <polygon points={areaPts} fill="url(#tlGrad)"/>
+                          <polyline points={linePts} fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"/>
+                        </svg>
+                        {/* Interactive dots */}
+                        {timeline.map((pt,i)=>(
+                          <div key={i}
+                            onMouseEnter={()=>setHoverIdx(i)}
+                            onMouseLeave={()=>setHoverIdx(null)}
+                            style={{position:"absolute",left:`${getX(i)}%`,top:`${getY(pt.panik)}%`,transform:"translate(-50%,-50%)",width:10,height:10,borderRadius:"50%",background:panikColor(pt.panik),border:"2px solid var(--bg-panel)",cursor:"pointer",zIndex:3}}>
+                            {hoverIdx===i&&(
+                              <div style={{position:"absolute",bottom:"calc(100% + 8px)",left:"50%",transform:"translateX(-50%)",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:3,padding:"8px 12px",zIndex:10,pointerEvents:"none",boxShadow:"0 4px 12px rgba(0,0,0,0.3)",minWidth:160}}>
+                                <div style={{fontSize:16,fontWeight:700,color:panikColor(pt.panik),fontFamily:"'Inter',sans-serif",lineHeight:1,marginBottom:4}}>{pt.panik}<span style={{fontSize:10,fontWeight:400,color:T.textLow}}>/10</span></div>
+                                <div style={{fontSize:13,color:T.textMid,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.4,marginBottom:3}}>{pt.title}</div>
+                                <div style={{fontSize:9,color:T.border2,fontFamily:"'Inter',sans-serif"}}>{pt.sources} source{pt.sources!==1?"s":""} · {new Date(pt.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {/* X-axis time labels */}
+                      <div style={{position:"absolute",bottom:0,left:26,right:0,display:"flex",justifyContent:"space-between"}}>
+                        <span style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif"}}>{new Date(timeline[0].ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
+                        <span style={{fontSize:9,color:T.border2,fontFamily:"'Inter',sans-serif"}}>← session →</span>
+                        <span style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif"}}>{new Date(timeline[n-1].ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
+                      </div>
+                    </div>
+
+                    {/* Story list */}
+                    {timeline.map((pt,i)=>(
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.border2}`}}>
+                        <div style={{width:28,height:28,borderRadius:"50%",background:panikColor(pt.panik),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0,fontFamily:"'Inter',sans-serif"}}>{pt.panik}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:14,color:T.textHigh,fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pt.title}</div>
+                          <div style={{fontSize:10,color:T.textLow,fontFamily:"'Inter',sans-serif",marginTop:2}}>{pt.sources} source{pt.sources!==1?"s":""} · {new Date(pt.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:600,color:panikColor(pt.panik),fontFamily:"'Inter',sans-serif",flexShrink:0}}>{panikWord(pt.panik)}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {result?.error&&<p style={{color:"#f87171",fontFamily:"'Inter',sans-serif",fontSize:13}}>Analysis failed. Please try again.</p>}
 
