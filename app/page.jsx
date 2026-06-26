@@ -256,6 +256,8 @@ export default function App() {
           .ml-back-btn{display:flex !important;}
         }
         .ml-back-btn{display:none;}
+        .ml-trending::-webkit-scrollbar{display:none;}
+        .ml-trending>div:hover{opacity:0.85;}
       `}</style>
 
       {/* ── NAV ── */}
@@ -345,6 +347,47 @@ export default function App() {
               ))}
             </div>
           )}
+
+          {/* Trending */}
+          {!loading&&filtered.length>0&&(()=>{
+            const trending=[...filtered].sort((a,b)=>srcsOf(b).length-srcsOf(a).length).slice(0,3);
+            return (
+              <div style={{marginBottom:2}}>
+                <div style={{fontSize:9,letterSpacing:2.5,color:"var(--accent)",fontFamily:"'Inter',sans-serif",fontWeight:600,marginBottom:8,paddingTop:4}}>TRENDING NOW</div>
+                <div className="ml-trending" style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none"}}>
+                  {trending.map((g,i)=>{
+                    const srcs=srcsOf(g);
+                    const isSelected=sel&&sel[0].title===g[0].title;
+                    const scores=srcs.map(s=>s.biasScore);
+                    const isBlindspot=srcs.length>=2&&(scores.every(x=>x<0)||scores.every(x=>x>0));
+                    const avg=srcs.reduce((a,s)=>a+s.biasScore,0)/Math.max(srcs.length,1);
+                    const pct=((avg+3)/6)*100;
+                    return (
+                      <div key={i} onClick={()=>pick(g)} style={{minWidth:176,maxWidth:176,flexShrink:0,padding:"10px 12px",border:`1px solid ${isSelected?"var(--accent)":T.border2}`,borderRadius:6,cursor:"pointer",background:isSelected?"var(--accent-subtle)":"var(--bg-panel)",transition:"border-color 0.15s,background 0.15s",display:"flex",flexDirection:"column",gap:7}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <span style={{fontSize:18,fontWeight:700,color:"var(--accent)",fontFamily:"'Inter',sans-serif",lineHeight:1}}>{srcs.length}</span>
+                            <span style={{fontSize:9,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>SOURCES</span>
+                          </div>
+                          {isBlindspot&&<span style={{fontSize:8,color:"#f87171",fontFamily:"'Inter',sans-serif",letterSpacing:0.5,border:"1px solid #f8717144",borderRadius:3,padding:"1px 4px"}}>BLINDSPOT</span>}
+                        </div>
+                        <p style={{fontSize:13,lineHeight:1.45,color:isSelected?T.textHigh:T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,margin:0,display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{g[0].title}</p>
+                        <div style={{marginTop:"auto"}}>
+                          <div style={{position:"relative",height:4,background:`linear-gradient(to right,#818cf8,#3b82f6,#60a5fa,#94a3b8,#fb923c,#f87171,#fbbf24)`,borderRadius:2,marginBottom:5}}>
+                            <div style={{position:"absolute",top:-2,left:`${Math.max(2,Math.min(98,pct))}%`,width:3,height:8,background:"white",borderRadius:2,transform:"translateX(-50%)",boxShadow:"0 0 4px rgba(0,0,0,0.5)"}}/>
+                          </div>
+                          <div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
+                            {srcs.map(s=><div key={s.id} title={`${s.label} · ${BIAS[s.bias].label}`} style={{width:5,height:5,borderRadius:"50%",background:BIAS[s.bias].dot,opacity:0.85}}/>)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{height:1,background:"var(--accent)",opacity:0.4,marginBottom:14}}/>
+              </div>
+            );
+          })()}
 
           {/* Story list */}
           {!loading&&filtered.slice(0,80).map((g,i)=>{
