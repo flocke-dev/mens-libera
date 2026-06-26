@@ -811,10 +811,20 @@ export default function App() {
                             const audioText=`${result.titel}. Panic level: ${result.scores?.panik} out of 10. ${result.fakten?.[0]}. ${result.urteil}. Missing perspectives: ${result.fehlt?.[0]}.`;
                             const utterance=new SpeechSynthesisUtterance(audioText);
                             utterance.lang="en-US";
-                            utterance.rate=0.95;
+                            utterance.pitch=1.0;
+                            utterance.volume=1.0;
                             utterance.onend=()=>setSpeaking(false);
                             utterance.onerror=()=>setSpeaking(false);
-                            window.speechSynthesis.speak(utterance);
+                            const preferred=["Google US English","Microsoft Aria Online","Samantha","Karen","Daniel"];
+                            const applyVoice=()=>{
+                              const voices=window.speechSynthesis.getVoices();
+                              const best=preferred.map(name=>voices.find(v=>v.name.includes(name))).find(Boolean)||voices.find(v=>v.lang==="en-US")||voices[0];
+                              if(best)utterance.voice=best;
+                              utterance.rate=0.88;
+                              window.speechSynthesis.speak(utterance);
+                            };
+                            if(window.speechSynthesis.getVoices().length>0){applyVoice();}
+                            else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;applyVoice();};}
                             setSpeaking(true);
                           }} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,background:"none",border:`1px solid var(--accent)`,color:"var(--accent)",padding:"10px 16px",borderRadius:6,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,letterSpacing:0.5,flexShrink:0}}>
                             <span style={{fontSize:20}}>{speaking?"⏸":"▶"}</span>
