@@ -93,21 +93,23 @@ function detectCat(t,d=""){const txt=(t+" "+d).toLowerCase();for(const[c,ks]of O
 // Colors without CSS variables — switched via JS for dynamic/conditional usage
 const DARK = {
   border2:"#2a2535",
-  accentAlt:"#d97706",
-  textHigh:"#f0ece0", textMid:"#6b7280",
-  textLow:"#52525b",  textBody:"#c8c4b9",
-  rowTitle:"#b8b4a8", hoverBg:"#18181b",
-  titleColor:"#ffffff", arrowColor:"#3f3f46",
-  uniqueWord:"#f0f0f0", commonWord:"#52525b",
+  accentAlt:"#c8a96e",
+  textHigh:"#f0ece0", textMid:"#c8c4b9",
+  textLow:"#4a4560",  textBody:"#c8c4b9",
+  rowTitle:"#b8b4a8", hoverBg:"#1e1c2a",
+  titleColor:"#f0ece0", arrowColor:"#4a4560",
+  uniqueWord:"#f0ece0", commonWord:"#4a4560",
+  surface2:"#1e1c2a", success:"#4ade80", warning:"#fbbf24", danger:"#f87171",
 };
 const LIGHT = {
-  border2:"#c8c3b8",
-  accentAlt:"#b45309",
-  textHigh:"#111111", textMid:"#4b5563",
-  textLow:"#6b7280",  textBody:"#374151",
-  rowTitle:"#374151", hoverBg:"#e5e0d6",
-  titleColor:"#111111", arrowColor:"#9ca3af",
-  uniqueWord:"#111111", commonWord:"#6b7280",
+  border2:"#e8e6e0",
+  accentAlt:"#9a7209",
+  textHigh:"#1a1a1a", textMid:"#6b7280",
+  textLow:"#9ca3af",  textBody:"#374151",
+  rowTitle:"#374151", hoverBg:"#f5f4f0",
+  titleColor:"#1a1a1a", arrowColor:"#9ca3af",
+  uniqueWord:"#1a1a1a", commonWord:"#9ca3af",
+  surface2:"#f5f4f0", success:"#16a34a", warning:"#d97706", danger:"#dc2626",
 };
 
 export default function App() {
@@ -157,8 +159,10 @@ export default function App() {
   const [showCompare,       setShowCompare]       = useState(false);
   const [timeline,          setTimeline]          = useState([]);
   const [hoverIdx,          setHoverIdx]          = useState(null);
+  const [framingFilter,     setFramingFilter]     = useState(null);
   const panelRef = useRef(null);
   const notifiedTitles = useRef(new Set());
+  const touchStartX = useRef(null);
 
   const T = dark ? DARK : LIGHT;
 
@@ -377,7 +381,7 @@ export default function App() {
   return (
     <div className="ml-root" style={{background:"var(--bg)",minHeight:"100vh",color:"var(--text)",fontFamily:"'EB Garamond', Georgia, serif"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
         ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:${T.border2};}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -427,9 +431,21 @@ export default function App() {
         }
         .ml-back-btn{display:none;}
         .ml-trending::-webkit-scrollbar{display:none;}
-        .ml-trending>div:hover{opacity:0.85;}
+        .ml-trending>div:hover{opacity:0.9;transform:translateY(-1px);}
         .ml-compare-grid{display:grid;grid-template-columns:1fr 1fr;}
         @media(max-width:768px){.ml-compare-grid{grid-template-columns:1fr;}}
+        .score-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+        @media(max-width:768px){.score-grid-4{grid-template-columns:repeat(2,1fr) !important;}}
+        .panel-active{animation:slideUp 0.3s ease both;}
+        @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+        .hot-badge{display:inline-flex;align-items:center;padding:1px 6px;background:linear-gradient(135deg,#b8860b,#d4a520);color:#fff;font-size:8px;font-weight:700;letter-spacing:1px;border-radius:3px;font-family:'Inter',sans-serif;margin-left:6px;vertical-align:middle;}
+        .framing-toggle button{transition:all 0.2s ease;}
+        .cred-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:4px;vertical-align:middle;flex-shrink:0;}
+        .bias-slider-track{position:relative;height:16px;background:linear-gradient(to right,#818cf8,#3b82f6,#60a5fa,#94a3b8,#fb923c,#f87171,#fbbf24);border-radius:8px;cursor:pointer;}
+        .bias-slider-track:hover .bias-marker{transform:translateX(-50%) scale(1.2);}
+        .bias-marker{position:absolute;top:-4px;width:8px;height:24px;background:white;border-radius:4px;transform:translateX(-50%);box-shadow:0 0 8px rgba(0,0,0,0.5);transition:transform 0.15s ease;}
+        @keyframes markerSlide{from{left:50%}to{left:var(--marker-pos)}}
+        .bias-marker{animation:markerSlide 0.6s cubic-bezier(0.34,1.56,0.64,1) both;}
       `}</style>
 
       {/* ── NAV ── */}
@@ -611,36 +627,38 @@ export default function App() {
             const isRead=read.has(g[0].title);
             const scores=srcs.map(s=>s.biasScore);
             const isBlindspot=srcs.length>=2&&(scores.every(x=>x<0)||scores.every(x=>x>0));
+            const isHot=srcs.length>=4;
             return (
-              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0 18px 12px",borderBottom:"1px solid var(--border)",cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.15s,box-shadow 0.15s",borderLeft:`3px solid ${isSelected?"var(--accent)":BIAS[srcs[0]?.bias]?.dot||T.border2}`,marginLeft:0,opacity:isRead&&!isSelected?0.7:1}}>
+              <div key={i} onClick={()=>pick(g)} className="row" style={{padding:"18px 0 18px 12px",borderBottom:`1px solid ${T.border2}`,cursor:"pointer",background:isSelected?"var(--accent-subtle)":"transparent",transition:"background 0.2s ease,box-shadow 0.2s ease",borderLeft:`3px solid ${isSelected?"var(--accent)":BIAS[srcs[0]?.bias]?.dot||T.border2}`,marginLeft:0,opacity:isRead&&!isSelected?0.65:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
                   <div style={{display:"flex",gap:3}}>
                     {srcs.map(s=>(
-                      <div key={s.id} title={`${s.label} · ${BIAS[s.bias].label}`} style={{width:6,height:6,borderRadius:"50%",background:BIAS[s.bias].dot,opacity:0.8}}/>
+                      <div key={s.id} title={`${s.label} · ${BIAS[s.bias].label}`} style={{width:6,height:6,borderRadius:"50%",background:BIAS[s.bias].dot,opacity:0.85}}/>
                     ))}
                   </div>
                   {isBlindspot&&(
-                    <span className="tooltip" style={{fontSize:9,color:"#f87171",fontFamily:"'Inter',sans-serif",letterSpacing:0.5,gap:3}}>
+                    <span className="tooltip" style={{fontSize:9,color:T.danger||"#f87171",fontFamily:"'Inter',sans-serif",letterSpacing:0.5,gap:3}}>
                       BLINDSPOT
                       <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:11,height:11,borderRadius:"50%",border:"1px solid #f8717166",fontSize:8,lineHeight:1,cursor:"default",marginLeft:2}}>?</span>
                       <span className="tooltip-text">This story is only covered by one political side – the other side remains silent.</span>
                     </span>
                   )}
-                  <span style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
+                  {isHot&&<span className="hot-badge">HOT</span>}
+                  <span style={{fontSize:11,color:T.textLow,fontFamily:"'Inter',sans-serif",letterSpacing:"0.05em",marginLeft:"auto"}}>{g[0].pubDate?ago(g[0].pubDate):""}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
-                  <p className="row-title" style={{fontSize:17,lineHeight:1.6,color:isSelected?T.textHigh:isRead?"var(--text-sub)":T.rowTitle,fontFamily:"'EB Garamond',Georgia,serif",fontWeight:600,margin:0,transition:"color 0.15s"}}>
+                  <p className="row-title" style={{fontSize:16,lineHeight:1.55,color:isSelected?T.textHigh:isRead?T.textLow:T.rowTitle,fontFamily:"'Playfair Display',Georgia,serif",fontWeight:600,margin:0,transition:"color 0.2s ease"}}>
                     {g[0].title}
                   </p>
-                  {isRead&&<span className="analyzed-badge" style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:"#4ade8022",border:"1px solid #4ade8066",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#4ade80",fontWeight:700}}>✓</span>}
+                  {isRead&&<span className="analyzed-badge" style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:`${T.success||"#4ade80"}22`,border:`1px solid ${T.success||"#4ade80"}66`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,color:T.success||"#4ade80",fontWeight:700}}>✓</span>}
                 </div>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
                   {srcs.slice(0,4).map(s=>(
-                    <span key={s.id} onClick={e=>{e.stopPropagation();setShowSourceModal(s);}} style={{fontSize:13,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.7,cursor:"pointer"}}>
-                      {s.label}{s.credibility!=="high"&&<span style={{color:CRED[s.credibility],marginLeft:2}}>·</span>}
+                    <span key={s.id} onClick={e=>{e.stopPropagation();setShowSourceModal(s);}} style={{display:"inline-flex",alignItems:"center",fontSize:12,color:BIAS[s.bias].dot,fontFamily:"'Inter',sans-serif",opacity:0.8,cursor:"pointer",letterSpacing:"0.03em"}}>
+                      {s.label}<span className="cred-dot" style={{background:CRED[s.credibility]}}/>
                     </span>
                   ))}
-                  {srcs.length>4&&<span style={{fontSize:13,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>+{srcs.length-4}</span>}
+                  {srcs.length>4&&<span style={{fontSize:11,color:T.textLow,fontFamily:"'Inter',sans-serif"}}>+{srcs.length-4}</span>}
                 </div>
               </div>
             );
@@ -648,7 +666,15 @@ export default function App() {
         </aside>
 
         {/* ── PANEL ── */}
-        <div ref={panelRef} className="ml-panel" style={{padding:28,borderLeft:"1px solid var(--border)"}}>
+        <div ref={panelRef} className={`ml-panel${sel||manual?" panel-active":""}`}
+          style={{padding:28,borderLeft:`1px solid ${T.border2}`}}
+          onTouchStart={e=>{touchStartX.current=e.touches[0].clientX;}}
+          onTouchEnd={e=>{
+            if(touchStartX.current===null)return;
+            const dx=e.changedTouches[0].clientX-touchStartX.current;
+            if(dx>80&&(sel||manual)){setSel(null);setResult(null);setManual(false);window.scrollTo({top:0,behavior:"smooth"});}
+            touchStartX.current=null;
+          }}>
 
           {/* Mobile back button */}
           {(sel||manual)&&(
@@ -863,29 +889,38 @@ export default function App() {
                             </div>
                           ))}
                         </div>
-                        {/* Bias-Balken */}
-                        <div>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,letterSpacing:1.5,fontFamily:"'Inter',sans-serif",marginBottom:5}}>
-                            <span style={{color:"#818cf8"}}>LEFT</span>
-                            <span style={{color:"var(--text-sub)"}}>POLITICAL BIAS</span>
-                            <span style={{color:"#f87171"}}>RIGHT</span>
-                          </div>
-                          <div style={{position:"relative",height:14,background:"linear-gradient(to right,#818cf8,#3b82f6,#60a5fa,#94a3b8,#fb923c,#f87171,#fbbf24)",borderRadius:7}}>
-                            {sel&&(()=>{
-                              const srcs=srcsOf(sel);
-                              const avg=srcs.reduce((a,s)=>a+s.biasScore,0)/Math.max(srcs.length,1);
-                              const pct=((avg+3)/6)*100;
-                              return <div style={{position:"absolute",top:-3,left:`${Math.max(2,Math.min(98,pct))}%`,width:5,height:20,background:"white",borderRadius:3,transform:"translateX(-50%)",boxShadow:"0 0 6px rgba(0,0,0,0.6)"}}/>;
-                            })()}
-                          </div>
-                        </div>
+                        {/* Bias-Slider interaktiv */}
+                        {sel&&(()=>{
+                          const srcs=srcsOf(sel);
+                          const avg=srcs.reduce((a,s)=>a+s.biasScore,0)/Math.max(srcs.length,1);
+                          const pct=Math.max(2,Math.min(98,((avg+3)/6)*100));
+                          const leanLabel=avg<-1?"Left":avg>1?"Right":avg<-0.3?"Center-Left":avg>0.3?"Center-Right":"Center";
+                          const leanColor=avg<-1?"#60a5fa":avg>1?"#f87171":"#94a3b8";
+                          return (
+                            <div>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                                <span style={{fontSize:9,letterSpacing:1.5,color:T.textLow,fontFamily:"'Inter',sans-serif"}}>POLITICAL BIAS</span>
+                                <span style={{fontSize:11,fontFamily:"'Inter',sans-serif",fontWeight:600,color:leanColor}}>
+                                  This story leans <span style={{textDecoration:"underline",cursor:"pointer"}} onClick={()=>setBias(avg<-0.5?"left":avg>0.5?"right":"alle")}>{leanLabel}</span>
+                                </span>
+                              </div>
+                              <div className="bias-slider-track" title={`Avg. bias: ${avg.toFixed(1)}`} onClick={()=>setBias(avg<-0.5?"left":avg>0.5?"right":"alle")}>
+                                <div className="bias-marker" style={{"--marker-pos":`${pct}%`,left:`${pct}%`}}/>
+                              </div>
+                              <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                                <span style={{fontSize:8,color:"#818cf8",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>LEFT</span>
+                                <span style={{fontSize:8,color:"#f87171",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>RIGHT</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         {/* 4 Scores */}
-                        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+                        <div className="score-grid-4">
                           {[["PANIC","🚨",result.scores?.panik],["BIAS","⚖️",result.scores?.einseitigkeit],["EMOTION","🎭",result.scores?.emotionalisierung],["FACTS","✓",result.scores?.faktendichte]].map(([lbl,icon,val])=>(
-                            <div key={lbl} className="score-card" style={{textAlign:"center",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,padding:"12px 4px 10px",cursor:"default"}}>
+                            <div key={lbl} className="score-card" style={{textAlign:"center",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:8,padding:"12px 4px 10px",cursor:"default"}}>
                               <div style={{fontSize:16,lineHeight:1,marginBottom:6}}>{icon}</div>
-                              <div style={{fontSize:32,fontWeight:700,color:panikColor(val),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{val}</div>
-                              <div style={{fontSize:9,letterSpacing:1.5,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",margin:"5px 0 8px"}}>{lbl}</div>
+                              <div style={{fontSize:36,fontWeight:700,color:panikColor(val),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{val}</div>
+                              <div style={{fontSize:9,letterSpacing:1.5,color:"var(--text-muted,#9ca3af)",fontFamily:"'Inter',sans-serif",margin:"5px 0 8px"}}>{lbl}</div>
                               <div style={{height:3,background:T.border2,borderRadius:2,overflow:"hidden",margin:"0 8px"}}>
                                 <div style={{"--bar-w":`${(val/10)*100}%`,height:"100%",background:panikColor(val),borderRadius:2,animation:"bar-fill 1s ease forwards",animationDelay:"0.3s",width:0}}/>
                               </div>
@@ -893,8 +928,8 @@ export default function App() {
                           ))}
                         </div>
                         {/* Fazit */}
-                        <div style={{padding:"12px 14px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderLeft:`3px solid ${result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}`,borderRadius:2}}>
-                          <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0,fontStyle:"italic"}}>{result.urteil}</p>
+                        <div style={{padding:"14px 16px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderLeft:`3px solid ${result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}`,borderRadius:8}}>
+                          <p style={{fontSize:15,lineHeight:1.8,color:T.textBody,fontFamily:"'Source Serif 4','EB Garamond',Georgia,serif",margin:0,fontStyle:"italic"}}>{result.urteil}</p>
                         </div>
                       </div>
                     : <div style={{padding:"48px 0",textAlign:"center"}}>
@@ -908,8 +943,19 @@ export default function App() {
                   {sel.length<2
                     ? <p style={{color:T.textLow,fontFamily:"'Inter',sans-serif",fontSize:13}}>Only one source – no comparison possible.</p>
                     : <>
-                        <p style={{fontSize:12,color:T.textLow,fontFamily:"'Inter',sans-serif",marginBottom:20,letterSpacing:0.5}}>SAME STORY · DIFFERENT PERSPECTIVES · <span style={{color:T.textMid}}>Bold</span> = unique phrasing per source</p>
-                        {sel.map((a,i)=>{
+                        {/* Framing toggle */}
+                        <div className="framing-toggle" style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+                          <p style={{fontSize:11,color:T.textLow,fontFamily:"'Inter',sans-serif",letterSpacing:"0.05em",margin:0}}><span style={{color:T.textMid,fontWeight:500}}>Bold</span> = unique phrasing</p>
+                          <div style={{display:"flex",border:`1px solid ${T.border2}`,borderRadius:6,overflow:"hidden"}}>
+                            {[{id:"left",label:"← Left"},{id:null,label:"All"},{id:"right",label:"Right →"}].map(f=>(
+                              <button key={String(f.id)} onClick={()=>setFramingFilter(f.id===framingFilter?null:f.id)}
+                                style={{padding:"5px 10px",fontSize:11,fontFamily:"'Inter',sans-serif",fontWeight:framingFilter===f.id?600:400,background:framingFilter===f.id?"var(--accent)":"transparent",color:framingFilter===f.id?"var(--bg)":T.textMid,border:"none",cursor:"pointer",letterSpacing:"0.03em"}}>
+                                {f.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {(()=>{const displayedArticles=framingFilter==="left"?sel.filter(a=>a.biasScore<0):framingFilter==="right"?sel.filter(a=>a.biasScore>0):sel;return displayedArticles.map((a,i)=>{
                           const others=sel.filter((_,j)=>j!==i).map(x=>x.title.toLowerCase());
                           const words=a.title.split(" ");
                           const inSlot=compareSlots.some(c=>c.sid===a.sid);
@@ -944,7 +990,7 @@ export default function App() {
                               <div style={{padding:"12px",display:"flex",alignItems:"center",color:T.arrowColor,fontSize:10}}>↗</div>
                             </a>
                           );
-                        })}
+                        })})()}
                       </>
                   }
                 </div>
@@ -975,19 +1021,19 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:2,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:8,marginBottom:20,borderLeft:`3px solid ${panikColor(result.scores?.panik)}`}}>
                         <span style={{fontSize:36,fontWeight:700,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{displayScore}</span>
                         <div>
-                          <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif"}}>{panikWord(result.scores?.panik)} Panic Level</div>
-                          <div style={{fontSize:13,color:T.textMid,fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic",marginTop:2}}>{result.urteil}</div>
+                          <div style={{fontSize:14,fontWeight:600,color:panikColor(result.scores?.panik),fontFamily:"'Inter',sans-serif",letterSpacing:"0.03em"}}>{panikWord(result.scores?.panik)} Panic Level</div>
+                          <div style={{fontSize:13,color:T.textMid,fontFamily:"'Source Serif 4','EB Garamond',Georgia,serif",fontStyle:"italic",marginTop:2,lineHeight:1.6}}>{result.urteil}</div>
                         </div>
                       </div>
                       {result.reisser?.length>0&&(
                         <div>
                           <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:10}}>SENSATIONALIST LANGUAGE</div>
                           {result.reisser.map((r,i)=>(
-                            <div key={i} style={{padding:"8px 14px",background:"var(--bg-panel)",borderLeft:"2px solid #f8717133",marginBottom:6,border:`1px solid ${T.border2}`,borderRadius:2}}>
-                              <span style={{fontSize:13,color:"#f87171",fontFamily:"'EB Garamond',Georgia,serif",fontStyle:"italic"}}>„{r}"</span>
+                            <div key={i} style={{padding:"10px 14px",background:"var(--bg-panel)",borderLeft:"2px solid #f8717133",marginBottom:6,border:`1px solid ${T.border2}`,borderRadius:6}}>
+                              <span style={{fontSize:14,color:"#f87171",fontFamily:"'Source Serif 4','EB Garamond',Georgia,serif",fontStyle:"italic",lineHeight:1.7}}>„{r}"</span>
                             </div>
                           ))}
                         </div>
@@ -1002,8 +1048,8 @@ export default function App() {
                   <div>
                     <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>VERIFIED FACTS</div>
                     {result.fakten?.map((f,i)=>(
-                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #4ade8044",border:"1px solid var(--border)",borderRadius:2}}>
-                        <span style={{color:"#4ade80",flexShrink:0,fontSize:12,marginTop:1}}>✓</span>
+                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:`2px solid ${T.success||"#4ade80"}44`,border:`1px solid ${T.border2}`,borderRadius:6}}>
+                        <span style={{color:T.success||"#4ade80",flexShrink:0,fontSize:12,marginTop:1}}>✓</span>
                         <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{f}</p>
                       </div>
                     ))}
@@ -1011,9 +1057,9 @@ export default function App() {
                   <div>
                     <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:12}}>OPINIONS AS FACTS</div>
                     {result.meinungen?.map((m,i)=>(
-                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:"2px solid #fbbf2444",border:"1px solid var(--border)",borderRadius:2}}>
-                        <span style={{color:"#fbbf24",flexShrink:0,fontSize:12,marginTop:1}}>⚠</span>
-                        <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{m}</p>
+                      <div key={i} style={{display:"flex",gap:10,marginBottom:8,padding:"10px 12px",background:"var(--bg-panel)",borderLeft:`2px solid ${T.warning||"#fbbf24"}44`,border:`1px solid ${T.border2}`,borderRadius:6}}>
+                        <span style={{color:T.warning||"#fbbf24",flexShrink:0,fontSize:12,marginTop:1}}>⚠</span>
+                        <p style={{fontSize:15,lineHeight:1.8,color:T.textBody,fontFamily:"'Source Serif 4','EB Garamond',Georgia,serif",margin:0}}>{m}</p>
                       </div>
                     ))}
                   </div>
@@ -1025,9 +1071,9 @@ export default function App() {
                 <div className="fi">
                   <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginBottom:16}}>MISSING PERSPECTIVES & OPEN QUESTIONS</div>
                   {result.fehlt?.map((f,i)=>(
-                    <div key={i} style={{display:"flex",gap:12,marginBottom:8,padding:"12px 14px",background:"var(--bg-panel)",alignItems:"flex-start",border:"1px solid var(--border)",borderRadius:2}}>
-                      <div style={{width:18,height:18,borderRadius:"50%",background:"#1e3a8a",color:"#93c5fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontFamily:"'Inter',sans-serif",fontWeight:700,flexShrink:0,marginTop:1}}>?</div>
-                      <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{f}</p>
+                    <div key={i} style={{display:"flex",gap:12,marginBottom:8,padding:"12px 14px",background:"var(--bg-panel)",alignItems:"flex-start",border:`1px solid ${T.border2}`,borderRadius:8}}>
+                      <div style={{width:20,height:20,borderRadius:"50%",background:"#1e3a8a",color:"#93c5fd",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:"'Inter',sans-serif",fontWeight:700,flexShrink:0,marginTop:2}}>?</div>
+                      <p style={{fontSize:15,lineHeight:1.8,color:T.textBody,fontFamily:"'Source Serif 4','EB Garamond',Georgia,serif",margin:0}}>{f}</p>
                     </div>
                   ))}
                   <p style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:14,lineHeight:1.6}}>Search for these aspects in other sources to get the full picture.</p>
