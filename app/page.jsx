@@ -153,6 +153,8 @@ export default function App() {
   const [savedSearches,     setSavedSearches]     = useState([]);
   const [notifEnabled,      setNotifEnabled]      = useState(false);
   const [showNotifBanner,   setShowNotifBanner]   = useState(false);
+  const [compareSlots,      setCompareSlots]      = useState([]);
+  const [showCompare,       setShowCompare]       = useState(false);
   const panelRef = useRef(null);
   const notifiedTitles = useRef(new Set());
 
@@ -254,6 +256,17 @@ export default function App() {
 
   function handleShare(){
     setShowShareModal(true);
+  }
+
+  useEffect(()=>{if(compareSlots.length===2)setShowCompare(true);},[compareSlots]);
+
+  function toggleCompare(article,e){
+    e.preventDefault();e.stopPropagation();
+    setCompareSlots(prev=>{
+      if(prev.some(a=>a.sid===article.sid))return prev.filter(a=>a.sid!==article.sid);
+      if(prev.length>=2)return[prev[1],article];
+      return[...prev,article];
+    });
   }
 
   async function requestNotifPermission(){
@@ -405,6 +418,8 @@ export default function App() {
         .ml-back-btn{display:none;}
         .ml-trending::-webkit-scrollbar{display:none;}
         .ml-trending>div:hover{opacity:0.85;}
+        .ml-compare-grid{display:grid;grid-template-columns:1fr 1fr;}
+        @media(max-width:768px){.ml-compare-grid{grid-template-columns:1fr;}}
       `}</style>
 
       {/* ── NAV ── */}
@@ -860,6 +875,8 @@ export default function App() {
                         {sel.map((a,i)=>{
                           const others=sel.filter((_,j)=>j!==i).map(x=>x.title.toLowerCase());
                           const words=a.title.split(" ");
+                          const inSlot=compareSlots.some(c=>c.sid===a.sid);
+                          const slotFull=compareSlots.length===2&&!inSlot;
                           return (
                             <a key={i} href={a.link} target="_blank" rel="noreferrer"
                               style={{display:"flex",gap:0,marginBottom:2,borderRadius:4,overflow:"hidden"}}
@@ -872,6 +889,10 @@ export default function App() {
                                 <span style={{fontSize:11,fontWeight:600,color:BIAS[a.bias].dot,fontFamily:"'Inter',sans-serif"}}>{a.slabel}</span>
                                 <span style={{fontSize:9,color:T.textLow,fontFamily:"'Inter',sans-serif",marginTop:2}}>{BIAS[a.bias].label}</span>
                                 {a.cred!=="high"&&<span style={{fontSize:9,color:CRED[a.cred],fontFamily:"'Inter',sans-serif",marginTop:1}}>{a.cred==="medium"?"●●○":"●○○"}</span>}
+                                <button onClick={e=>toggleCompare(a,e)} disabled={slotFull}
+                                  style={{marginTop:5,padding:"2px 6px",fontSize:9,fontFamily:"'Inter',sans-serif",fontWeight:600,borderRadius:3,border:`1px solid ${inSlot?"var(--accent)":T.border2}`,background:inSlot?"var(--accent)":"transparent",color:inSlot?"var(--bg)":slotFull?T.border2:T.textMid,cursor:slotFull?"default":"pointer",letterSpacing:0.3,transition:"all 0.15s"}}>
+                                  {inSlot?"✓ Selected":"+ Compare"}
+                                </button>
                               </div>
                               {/* Headline */}
                               <div style={{flex:1,padding:"12px 16px",display:"flex",alignItems:"center"}}>
@@ -1044,6 +1065,63 @@ export default function App() {
         </div>
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
+
+      {/* ── COMPARE OVERLAY ── */}
+      {showCompare&&compareSlots.length===2&&(()=>{
+        const [a1,a2]=compareSlots;
+        const words1=new Set(a1.body.toLowerCase().replace(/[^\w\s]/g," ").split(/\s+/).filter(w=>w.length>3));
+        const words2=new Set(a2.body.toLowerCase().replace(/[^\w\s]/g," ").split(/\s+/).filter(w=>w.length>3));
+        const renderBody=(text,myWords,otherWords,side)=>
+          text.split(" ").map((w,wi)=>{
+            const clean=w.replace(/[^\w]/g,"").toLowerCase();
+            const unique=clean.length>3&&myWords.has(clean)&&!otherWords.has(clean);
+            return <span key={wi} style={{color:unique?(side==="left"?"#60a5fa":"#fb923c"):"var(--text)",fontWeight:unique?500:400}}>{w} </span>;
+          });
+        return (
+          <div style={{position:"fixed",inset:0,background:"var(--bg)",zIndex:600,overflowY:"auto",fontFamily:"'Inter',sans-serif"}}>
+            {/* Header */}
+            <div style={{position:"sticky",top:0,background:"var(--bg)",borderBottom:"1px solid var(--border)",padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:10}}>
+              <div>
+                <div style={{fontSize:9,letterSpacing:2,color:"var(--text-sub)",marginBottom:3}}>SOURCE COMPARISON</div>
+                <div style={{fontSize:16,fontWeight:600,color:"var(--text)",fontFamily:"'EB Garamond',Georgia,serif"}}>
+                  <span style={{color:BIAS[a1.bias].dot}}>{a1.slabel}</span>
+                  <span style={{color:T.textLow,margin:"0 10px"}}>vs</span>
+                  <span style={{color:BIAS[a2.bias].dot}}>{a2.slabel}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{display:"flex",gap:16,fontSize:11,color:T.textMid}}>
+                  <span><span style={{color:"#60a5fa",fontWeight:700}}>■</span> Unique to {a1.slabel}</span>
+                  <span><span style={{color:"#fb923c",fontWeight:700}}>■</span> Unique to {a2.slabel}</span>
+                </div>
+                <button onClick={()=>{setShowCompare(false);setCompareSlots([]);}}
+                  style={{background:"var(--accent)",border:"none",color:"var(--bg)",padding:"7px 16px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+                  Exit Compare
+                </button>
+              </div>
+            </div>
+            {/* Split panes */}
+            <div className="ml-compare-grid">
+              {[{art:a1,myW:words1,otherW:words2,side:"left"},{art:a2,myW:words2,otherW:words1,side:"right"}].map(({art,myW,otherW,side},ci)=>(
+                <div key={art.sid} style={{padding:"24px 28px",borderRight:ci===0?`1px solid var(--border)`:"none"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:BIAS[art.bias].dot,flexShrink:0}}/>
+                    <span style={{fontSize:12,fontWeight:600,color:BIAS[art.bias].dot,fontFamily:"'Inter',sans-serif"}}>{art.slabel}</span>
+                    <span style={{fontSize:11,color:T.textLow,fontFamily:"'Inter',sans-serif"}}>{BIAS[art.bias].label}</span>
+                    <a href={art.link} target="_blank" rel="noreferrer" style={{marginLeft:"auto",fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>Original ↗</a>
+                  </div>
+                  <h3 style={{fontSize:19,lineHeight:1.4,fontWeight:600,fontFamily:"'EB Garamond',Georgia,serif",color:"var(--text)",marginBottom:16,paddingBottom:12,borderBottom:`1px solid var(--border)`}}>
+                    {art.title}
+                  </h3>
+                  <div style={{fontSize:15,lineHeight:1.9,fontFamily:"'EB Garamond',Georgia,serif",color:"var(--text-sub)"}}>
+                    {renderBody(art.body,myW,otherW,side)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── NOTIFICATION BANNER ── */}
       {showNotifBanner&&(
