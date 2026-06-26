@@ -147,6 +147,9 @@ export default function App() {
   const [interests,         setInterests]         = useState([]);
   const [showPrefsModal,    setShowPrefsModal]     = useState(false);
   const [prefsDraft,        setPrefsDraft]         = useState([]);
+  const [showDigestModal,   setShowDigestModal]    = useState(false);
+  const [digest,            setDigest]            = useState(null);
+  const [digestLoading,     setDigestLoading]     = useState(false);
   const panelRef = useRef(null);
 
   const T = dark ? DARK : LIGHT;
@@ -178,6 +181,22 @@ export default function App() {
   function closeOnboarding(){
     if(onboardingSkip) localStorage.setItem('ml-onboarding','true');
     setShowOnboarding(false);
+  }
+
+  async function generateDigest(){
+    if(!groups.length)return;
+    setDigestLoading(true);setShowDigestModal(true);setDigest(null);
+    const titles=groups.slice(0,10).map((g,i)=>`${i+1}. ${g[0].title}`).join("\n");
+    const prompt=`Here are the current top stories from the news feed:\n${titles}\n\nCreate a Weekly Digest in English. Respond ONLY as JSON without backticks:\n{"important":[<3 most important stories as strings>],"blindspot":"<biggest blindspot story: only covered by one political side>","sensational":"<most sensationalist headline>","balanced":"<most balanced story>","assessment":"<one-sentence overall media assessment this week>"}`;
+    try{
+      const res=await fetch("/api/analyse",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:prompt}]})});
+      const d=await res.json();
+      const raw=d.content?.[0]?.text||d.content?.map(i=>i.text||"").join("")||"";
+      const match=raw.match(/\{[\s\S]*\}/);
+      if(!match)throw new Error("No JSON");
+      setDigest(JSON.parse(match[0]));
+    }catch{setDigest({error:true});}
+    finally{setDigestLoading(false);}
   }
 
   useEffect(()=>{
@@ -344,6 +363,10 @@ export default function App() {
             {loading
               ? <><span style={{width:12,height:12,border:"1.5px solid var(--text-sub)",borderTopColor:"transparent",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite"}}/>{loaded}/{SOURCES.length}</>
               : <>↻ Refresh</>}
+          </button>
+          <button className="ml-text-btn" onClick={generateDigest} disabled={loading||!groups.length} title="Weekly Digest"
+            style={{background:"transparent",border:`1px solid ${T.border2}`,color:T.textMid,padding:"5px 14px",fontSize:12,fontFamily:"'Inter',sans-serif",borderRadius:4,cursor:loading||!groups.length?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:6,opacity:loading||!groups.length?0.4:1}}>
+            📋 Digest
           </button>
           {history.length>0&&(
             <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif"}}>{history.length} Analyses</div>
@@ -920,6 +943,98 @@ export default function App() {
         </div>
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
+
+      {/* ── DIGEST MODAL ── */}
+      {showDigestModal&&(()=>{
+        const shareDigest=digest&&!digest.error?`📋 THIS WEEK IN MEDIA\n\nMENS LIBERA · The Free Mind\n\n🔥 MOST IMPORTANT STORIES:\n${digest.important?.map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\n👁 BIGGEST BLINDSPOT:\n${digest.blindspot}\n\n🎭 MOST SENSATIONALIST:\n${digest.sensational}\n\n⚖️ MOST BALANCED:\n${digest.balanced}\n\n📝 MEDIA ASSESSMENT:\n${digest.assessment}\n\n🌐 mens-libera.vercel.app`:"";
+        return (
+          <div onClick={()=>setShowDigestModal(false)}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:"#0b0b12",border:"1px solid var(--accent)",borderTop:"3px solid var(--accent)",padding:28,width:"100%",maxWidth:480,borderRadius:4,maxHeight:"90vh",overflowY:"auto"}}>
+
+              {/* Header */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div>
+                  <div style={{fontSize:11,letterSpacing:3,color:"var(--accent)",fontFamily:"'Inter',sans-serif",fontWeight:600}}>MENS LIBERA</div>
+                  <div style={{fontSize:22,fontWeight:600,color:"#f0ece0",fontFamily:"'EB Garamond',Georgia,serif",lineHeight:1.2}}>This Week in Media</div>
+                </div>
+                <button onClick={()=>setShowDigestModal(false)} style={{background:"none",border:"none",color:"#6b7280",fontSize:20,lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+              </div>
+
+              {/* Loading */}
+              {digestLoading&&(
+                <div style={{padding:"48px 0",textAlign:"center"}}>
+                  <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:14}}>
+                    {[0,1,2,3].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.4s infinite",animationDelay:`${i*0.2}s`}}/>)}
+                  </div>
+                  <p style={{fontSize:12,color:"#6b7280",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>ANALYZING {groups.slice(0,10).length} STORIES…</p>
+                </div>
+              )}
+
+              {/* Error */}
+              {digest?.error&&<p style={{color:"#f87171",fontFamily:"'Inter',sans-serif",fontSize:13}}>Digest failed. Please try again.</p>}
+
+              {/* Content */}
+              {digest&&!digest.error&&!digestLoading&&(
+                <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+                  {/* Important stories */}
+                  <div>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--accent)",fontFamily:"'Inter',sans-serif",marginBottom:10}}>🔥 MOST IMPORTANT STORIES</div>
+                    {digest.important?.map((s,i)=>(
+                      <div key={i} style={{display:"flex",gap:10,marginBottom:7,padding:"10px 12px",background:"#12101a",border:"1px solid #2a2535",borderRadius:3}}>
+                        <span style={{fontSize:14,fontWeight:700,color:"var(--accent)",fontFamily:"'Inter',sans-serif",flexShrink:0,lineHeight:1.6}}>{i+1}</span>
+                        <p style={{fontSize:15,lineHeight:1.6,color:"#c8c4b9",fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{s}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Blindspot */}
+                  <div style={{padding:"12px 14px",background:"#1a0a0a",border:"1px solid #f8717133",borderLeft:"3px solid #f87171",borderRadius:3}}>
+                    <div style={{fontSize:9,letterSpacing:2,color:"#f87171",fontFamily:"'Inter',sans-serif",marginBottom:6}}>👁 BIGGEST BLINDSPOT</div>
+                    <p style={{fontSize:15,lineHeight:1.6,color:"#c8c4b9",fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{digest.blindspot}</p>
+                  </div>
+
+                  {/* Sensational */}
+                  <div style={{padding:"12px 14px",background:"#12101a",border:"1px solid #2a2535",borderRadius:3}}>
+                    <div style={{fontSize:9,letterSpacing:2,color:"#fbbf24",fontFamily:"'Inter',sans-serif",marginBottom:6}}>🎭 MOST SENSATIONALIST</div>
+                    <p style={{fontSize:15,lineHeight:1.6,color:"#c8c4b9",fontFamily:"'EB Garamond',Georgia,serif",margin:0,fontStyle:"italic"}}>„{digest.sensational}"</p>
+                  </div>
+
+                  {/* Balanced */}
+                  <div style={{padding:"12px 14px",background:"#0a1a0a",border:"1px solid #4ade8033",borderLeft:"3px solid #4ade80",borderRadius:3}}>
+                    <div style={{fontSize:9,letterSpacing:2,color:"#4ade80",fontFamily:"'Inter',sans-serif",marginBottom:6}}>⚖️ MOST BALANCED</div>
+                    <p style={{fontSize:15,lineHeight:1.6,color:"#c8c4b9",fontFamily:"'EB Garamond',Georgia,serif",margin:0}}>{digest.balanced}</p>
+                  </div>
+
+                  {/* Assessment */}
+                  <div style={{padding:"14px 16px",background:"#12101a",border:"1px solid var(--accent)",borderRadius:3}}>
+                    <div style={{fontSize:9,letterSpacing:2,color:"var(--accent)",fontFamily:"'Inter',sans-serif",marginBottom:6}}>📝 MEDIA ASSESSMENT</div>
+                    <p style={{fontSize:16,lineHeight:1.7,color:"#f0ece0",fontFamily:"'EB Garamond',Georgia,serif",margin:0,fontStyle:"italic"}}>{digest.assessment}</p>
+                  </div>
+
+                  {/* Share */}
+                  <div style={{display:"flex",gap:8,marginTop:4}}>
+                    <button onClick={()=>{navigator.clipboard.writeText(shareDigest);}}
+                      style={{flex:1,background:"none",border:"1px solid #2a2535",color:"#6b7280",padding:"10px 0",fontSize:12,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      ⎙ Copy
+                    </button>
+                    <a href={`https://wa.me/?text=${encodeURIComponent(shareDigest)}`} target="_blank" rel="noreferrer"
+                      style={{flex:1,background:"none",border:"1px solid #2a2535",color:"#25D366",padding:"10px 0",fontSize:12,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",gap:6,textDecoration:"none"}}>
+                      WhatsApp
+                    </a>
+                    <a href={`https://t.me/share/url?url=https://mens-libera.vercel.app&text=${encodeURIComponent(shareDigest)}`} target="_blank" rel="noreferrer"
+                      style={{flex:1,background:"none",border:"1px solid #2a2535",color:"#229ED9",padding:"10px 0",fontSize:12,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",gap:6,textDecoration:"none"}}>
+                      Telegram
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── PREFERENCES MODAL ── */}
       {showPrefsModal&&(()=>{
