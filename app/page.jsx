@@ -151,7 +151,10 @@ export default function App() {
   const [digest,            setDigest]            = useState(null);
   const [digestLoading,     setDigestLoading]     = useState(false);
   const [savedSearches,     setSavedSearches]     = useState([]);
+  const [notifEnabled,      setNotifEnabled]      = useState(false);
+  const [showNotifBanner,   setShowNotifBanner]   = useState(false);
   const panelRef = useRef(null);
+  const notifiedTitles = useRef(new Set());
 
   const T = dark ? DARK : LIGHT;
 
@@ -173,6 +176,23 @@ export default function App() {
 
   useEffect(()=>{
     try{const saved=JSON.parse(localStorage.getItem('ml-saved-searches')||'[]');setSavedSearches(saved);}catch{}
+  },[]);
+
+  useEffect(()=>{
+    if(typeof Notification==='undefined')return;
+    setNotifEnabled(Notification.permission==='granted'&&localStorage.getItem('ml-notif')!=='off');
+  },[]);
+
+  useEffect(()=>{
+    if(typeof Notification==='undefined')return;
+    if(Notification.permission!=='default')return;
+    if(localStorage.getItem('ml-notif-dismissed'))return;
+    const t=setTimeout(()=>setShowNotifBanner(true),30000);
+    return()=>clearTimeout(t);
+  },[]);
+
+  useEffect(()=>{
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
   },[]);
 
   function saveSearch(){
@@ -236,6 +256,27 @@ export default function App() {
     setShowShareModal(true);
   }
 
+  async function requestNotifPermission(){
+    if(typeof Notification==='undefined')return;
+    const perm=await Notification.requestPermission();
+    const granted=perm==='granted';
+    setNotifEnabled(granted);
+    localStorage.setItem('ml-notif',granted?'on':'off');
+    localStorage.setItem('ml-notif-dismissed','true');
+    if(granted)new Notification("Mens Libera",{body:"Blindspot notifications enabled!",icon:"/favicon.ico"});
+    setShowNotifBanner(false);
+  }
+
+  function toggleNotif(){
+    if(typeof Notification==='undefined')return;
+    if(!notifEnabled){
+      if(Notification.permission==='granted'){setNotifEnabled(true);localStorage.setItem('ml-notif','on');}
+      else requestNotifPermission();
+    } else {
+      setNotifEnabled(false);localStorage.setItem('ml-notif','off');
+    }
+  }
+
   async function load(){
     setLoading(true);setLoaded(0);const res=[];
     await Promise.all(SOURCES.map(async s=>{
@@ -243,7 +284,19 @@ export default function App() {
         if(d.status==="ok")d.items.slice(0,12).forEach(i=>{const body=strip(i.content||i.description||"");res.push({...i,body,sid:s.id,slabel:s.label,bias:s.bias,biasScore:s.biasScore,cred:s.credibility,cat:detectCat(i.title,body)});});
       }catch{}setLoaded(c=>c+1);
     }));
-    setArticles(res);setGroups(group(res));setLoading(false);
+    const newGroups=group(res);
+    setArticles(res);setGroups(newGroups);setLoading(false);
+    if(typeof Notification!=='undefined'&&Notification.permission==='granted'&&localStorage.getItem('ml-notif')!=='off'){
+      newGroups.forEach(g=>{
+        const srcs=SOURCES.filter(s=>g.some(a=>a.sid===s.id));
+        const sc=srcs.map(s=>s.biasScore);
+        const isBlindspot=srcs.length>=2&&(sc.every(x=>x<0)||sc.every(x=>x>0));
+        if(isBlindspot&&!notifiedTitles.current.has(g[0].title)){
+          new Notification("🔴 New Blindspot Detected",{body:g[0].title,icon:"/favicon.ico"});
+          notifiedTitles.current.add(g[0].title);
+        }
+      });
+    }
   }
 
   function pick(g){
@@ -992,6 +1045,26 @@ export default function App() {
         <span style={{fontSize:12,color:T.border2,fontFamily:"'Inter',sans-serif"}}>Mens Libera · The Free Mind · Prototype only</span>
       </div>
 
+      {/* ── NOTIFICATION BANNER ── */}
+      {showNotifBanner&&(
+        <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:500,background:"var(--bg-panel)",borderTop:"2px solid var(--accent)",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:600,color:"var(--text)",fontFamily:"'Inter',sans-serif"}}>Get notified about Blindspots?</div>
+            <div style={{fontSize:11,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:2}}>Know instantly when a story is only covered by one political side.</div>
+          </div>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <button onClick={()=>{localStorage.setItem('ml-notif-dismissed','true');setShowNotifBanner(false);}}
+              style={{background:"none",border:`1px solid var(--border)`,color:"var(--text-sub)",padding:"7px 14px",fontSize:12,fontFamily:"'Inter',sans-serif",cursor:"pointer",borderRadius:3}}>
+              Not now
+            </button>
+            <button onClick={requestNotifPermission}
+              style={{background:"var(--accent)",border:"none",color:"var(--bg)",padding:"7px 16px",fontSize:12,fontFamily:"'Inter',sans-serif",fontWeight:600,cursor:"pointer",borderRadius:3}}>
+              Enable Notifications
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── DIGEST MODAL ── */}
       {showDigestModal&&(()=>{
         const shareDigest=digest&&!digest.error?`📋 THIS WEEK IN MEDIA\n\nMENS LIBERA · The Free Mind\n\n🔥 MOST IMPORTANT STORIES:\n${digest.important?.map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\n👁 BIGGEST BLINDSPOT:\n${digest.blindspot}\n\n🎭 MOST SENSATIONALIST:\n${digest.sensational}\n\n⚖️ MOST BALANCED:\n${digest.balanced}\n\n📝 MEDIA ASSESSMENT:\n${digest.assessment}\n\n🌐 mens-libera.vercel.app`:"";
@@ -1122,6 +1195,19 @@ export default function App() {
                     </label>
                   );
                 })}
+              </div>
+              {/* Notification toggle */}
+              <div style={{borderTop:`1px solid ${T.border2}`,marginTop:8,paddingTop:14,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div>
+                  <div style={{fontSize:13,color:T.textMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>Blindspot Notifications</div>
+                  <div style={{fontSize:10,color:T.border2,fontFamily:"'Inter',sans-serif",marginTop:2}}>
+                    {typeof Notification!=='undefined'&&Notification.permission==='denied'?"Blocked in browser settings":"Alert when only one side covers a story"}
+                  </div>
+                </div>
+                <button onClick={toggleNotif}
+                  style={{flexShrink:0,width:44,height:24,borderRadius:12,border:"none",background:notifEnabled?"var(--accent)":T.border2,cursor:"pointer",position:"relative",transition:"background 0.2s"}}>
+                  <div style={{width:20,height:20,borderRadius:"50%",background:"white",position:"absolute",top:2,left:notifEnabled?22:2,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+                </button>
               </div>
               <div style={{display:"flex",gap:8}}>
                 {interests.length>0&&(
