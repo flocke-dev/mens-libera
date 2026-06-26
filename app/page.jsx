@@ -144,7 +144,8 @@ export default function App() {
   const [onboardingStep,  setOnboardingStep]  = useState(0);
   const [showSourceModal, setShowSourceModal] = useState(null);
   const [sourceFilter,    setSourceFilter]    = useState(null);
-  const [speaking,          setSpeaking]          = useState(false);
+  const [isPlaying,         setIsPlaying]         = useState(false);
+  const audioRef = useRef(null);
   const [onboardingSkip,    setOnboardingSkip]    = useState(false);
   const [interests,         setInterests]         = useState([]);
   const [showPrefsModal,    setShowPrefsModal]     = useState(false);
@@ -273,6 +274,45 @@ export default function App() {
       if(prev.length>=2)return[prev[1],article];
       return[...prev,article];
     });
+  }
+
+  async function handleListen(result){
+    if(isPlaying){
+      audioRef.current?.pause();
+      if(audioRef.current?.src)URL.revokeObjectURL(audioRef.current.src);
+      window.speechSynthesis?.cancel();
+      setIsPlaying(false);
+      return;
+    }
+    const text=`${result.titel}. Panic level ${result.scores?.panik} out of 10. ${result.fakten?.[0]}. ${result.urteil}. What's missing: ${result.fehlt?.[0]}.`;
+    setIsPlaying(true);
+    try{
+      const res=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+      if(!res.ok||(res.headers.get("Content-Type")||"").includes("json"))throw new Error("fallback");
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      const audio=new Audio(url);
+      audioRef.current=audio;
+      audio.onended=()=>{setIsPlaying(false);URL.revokeObjectURL(url);};
+      audio.onerror=()=>{setIsPlaying(false);URL.revokeObjectURL(url);};
+      audio.play();
+    }catch{
+      // Fallback: Web Speech API mit bester verfügbarer Stimme
+      const utterance=new SpeechSynthesisUtterance(text);
+      utterance.lang="en-US";utterance.pitch=1.0;utterance.volume=1.0;
+      utterance.onend=()=>setIsPlaying(false);
+      utterance.onerror=()=>setIsPlaying(false);
+      const preferred=["Google US English","Microsoft Aria Online","Samantha","Karen","Daniel"];
+      const applyVoice=()=>{
+        const voices=window.speechSynthesis.getVoices();
+        const best=preferred.map(n=>voices.find(v=>v.name.includes(n))).find(Boolean)||voices.find(v=>v.lang==="en-US")||voices[0];
+        if(best)utterance.voice=best;
+        utterance.rate=0.88;
+        window.speechSynthesis.speak(utterance);
+      };
+      if(window.speechSynthesis.getVoices().length>0)applyVoice();
+      else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;applyVoice();};}
+    }
   }
 
   async function requestNotifPermission(){
@@ -852,29 +892,10 @@ export default function App() {
                               </div>
                             );
                           })()}
-                          <button onClick={()=>{
-                            if(speaking){window.speechSynthesis.cancel();setSpeaking(false);return;}
-                            const audioText=`${result.titel}. Panic level: ${result.scores?.panik} out of 10. ${result.fakten?.[0]}. ${result.urteil}. Missing perspectives: ${result.fehlt?.[0]}.`;
-                            const utterance=new SpeechSynthesisUtterance(audioText);
-                            utterance.lang="en-US";
-                            utterance.pitch=1.0;
-                            utterance.volume=1.0;
-                            utterance.onend=()=>setSpeaking(false);
-                            utterance.onerror=()=>setSpeaking(false);
-                            const preferred=["Google US English","Microsoft Aria Online","Samantha","Karen","Daniel"];
-                            const applyVoice=()=>{
-                              const voices=window.speechSynthesis.getVoices();
-                              const best=preferred.map(name=>voices.find(v=>v.name.includes(name))).find(Boolean)||voices.find(v=>v.lang==="en-US")||voices[0];
-                              if(best)utterance.voice=best;
-                              utterance.rate=0.88;
-                              window.speechSynthesis.speak(utterance);
-                            };
-                            if(window.speechSynthesis.getVoices().length>0){applyVoice();}
-                            else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;applyVoice();};}
-                            setSpeaking(true);
-                          }} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,background:"none",border:`1px solid var(--accent)`,color:"var(--accent)",padding:"10px 16px",borderRadius:6,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,letterSpacing:0.5,flexShrink:0}}>
-                            <span style={{fontSize:20}}>{speaking?"⏸":"▶"}</span>
-                            {speaking?"Stop":"Listen"}
+                          <button onClick={()=>handleListen(result)}
+                            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,background:isPlaying?"var(--accent)":"none",border:`1px solid var(--accent)`,color:isPlaying?"var(--bg)":"var(--accent)",padding:"10px 16px",borderRadius:6,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,letterSpacing:0.5,flexShrink:0,transition:"all 0.2s ease"}}>
+                            <span style={{fontSize:20}}>{isPlaying?"⏸":"▶"}</span>
+                            {isPlaying?"Stop":"Listen"}
                           </button>
                         </div>
                         {/* Bullet points */}
