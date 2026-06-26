@@ -167,7 +167,7 @@ export default function App() {
   function pick(g){
     setSel(g);setTab("headlines");setManual(false);
     const title=g[0].title;
-    if(cache[title]){setResult(cache[title]);setTab("analyse");setTimeout(()=>panelRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),80);return;}
+    if(cache[title]){setResult(cache[title]);setTab("snapshot");setTimeout(()=>panelRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),80);return;}
     setResult(null);
     const txt=`${title}\n\n${g[0].body}`;
     analyse(txt,g);
@@ -187,7 +187,7 @@ export default function App() {
       const match=raw.match(/\{[\s\S]*\}/);
       if(!match)throw new Error("Kein JSON");
       const p=JSON.parse(match[0]);
-      clearInterval(iv);setResult(p);setTab("analyse");
+      clearInterval(iv);setResult(p);setTab("snapshot");
       if(g){setCache(prev=>({...prev,[g[0].title]:p}));setRead(prev=>new Set([...prev,g[0].title]));}
       setHistory(h=>[{title:p.titel,panik:p.scores?.panik,g,result:p,ts:Date.now()},...h].slice(0,15));
     }catch{clearInterval(iv);setResult({error:true});}
@@ -209,7 +209,7 @@ export default function App() {
     return true;
   });
 
-  const TABS=[{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"}];
+  const TABS=[{id:"snapshot",label:"Snapshot"},{id:"headlines",label:"Headlines"},{id:"analyse",label:"AI Analysis"},{id:"fakten",label:"Facts"},{id:"fehlt",label:"What's Missing"},{id:"sach",label:"Fact Report"}];
 
   return (
     <div className="ml-root" style={{background:"var(--bg)",minHeight:"100vh",color:"var(--text)",fontFamily:"'EB Garamond', Georgia, serif"}}>
@@ -529,6 +529,75 @@ export default function App() {
                   </button>
                 )}
               </div>
+
+              {/* ── SNAPSHOT ── */}
+              {tab==="snapshot"&&(
+                analysing
+                  ? <div style={{padding:"48px 0",textAlign:"center"}}>
+                      <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:16}}>
+                        {STEPS.map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:i<=step?"var(--accent)":T.border2,transition:"background 0.3s",animation:i===step?"pulse 1s infinite":"none"}}/>)}
+                      </div>
+                      <p style={{fontSize:12,color:T.textLow,fontFamily:"'Inter',sans-serif",letterSpacing:1}}>{STEPS[step].toUpperCase()}</p>
+                    </div>
+                  : result&&!result.error
+                    ? <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+                        {/* Ampel */}
+                        <div style={{textAlign:"center",paddingTop:4}}>
+                          <div style={{
+                            width:72,height:72,borderRadius:"50%",margin:"0 auto 10px",
+                            background:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171",
+                            boxShadow:`0 0 30px ${result.scores?.panik<=3?"#4ade8055":result.scores?.panik<=6?"#fbbf2455":"#f8717155"}`,
+                          }}/>
+                          <div style={{fontSize:20,fontWeight:700,letterSpacing:3,fontFamily:"'Inter',sans-serif",color:result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}}>
+                            {result.scores?.panik<=3?"LOW RISK":result.scores?.panik<=6?"MODERATE":"HIGH ALERT"}
+                          </div>
+                        </div>
+                        {/* Bullet points */}
+                        <div style={{display:"flex",flexDirection:"column",gap:8,padding:"12px 14px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4}}>
+                          {[
+                            ["WHAT HAPPENED",result.fakten?.[0]||"—"],
+                            ["WHO REPORTS",sel?srcsOf(sel).map(s=>s.label).join(" · "):"—"],
+                            ["WHAT'S MISSING",result.fehlt?.[0]||"—"],
+                          ].map(([lbl,val])=>(
+                            <div key={lbl} style={{fontSize:14,lineHeight:1.6,fontFamily:"'EB Garamond',Georgia,serif",color:T.textBody}}>
+                              <span style={{fontSize:9,letterSpacing:1.5,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",fontWeight:600}}>{lbl}: </span>{val}
+                            </div>
+                          ))}
+                        </div>
+                        {/* Bias-Balken */}
+                        <div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,letterSpacing:1.5,fontFamily:"'Inter',sans-serif",marginBottom:5}}>
+                            <span style={{color:"#818cf8"}}>LEFT</span>
+                            <span style={{color:"var(--text-sub)"}}>POLITICAL BIAS</span>
+                            <span style={{color:"#f87171"}}>RIGHT</span>
+                          </div>
+                          <div style={{position:"relative",height:14,background:"linear-gradient(to right,#818cf8,#3b82f6,#60a5fa,#94a3b8,#fb923c,#f87171,#fbbf24)",borderRadius:7}}>
+                            {sel&&(()=>{
+                              const srcs=srcsOf(sel);
+                              const avg=srcs.reduce((a,s)=>a+s.biasScore,0)/Math.max(srcs.length,1);
+                              const pct=((avg+3)/6)*100;
+                              return <div style={{position:"absolute",top:-3,left:`${Math.max(2,Math.min(98,pct))}%`,width:5,height:20,background:"white",borderRadius:3,transform:"translateX(-50%)",boxShadow:"0 0 6px rgba(0,0,0,0.6)"}}/>;
+                            })()}
+                          </div>
+                        </div>
+                        {/* 4 Scores */}
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+                          {[["PANIC",result.scores?.panik],["BIAS",result.scores?.einseitigkeit],["EMOTION",result.scores?.emotionalisierung],["FACTS",result.scores?.faktendichte]].map(([lbl,val])=>(
+                            <div key={lbl} style={{textAlign:"center",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderRadius:4,padding:"12px 4px"}}>
+                              <div style={{fontSize:32,fontWeight:700,color:panikColor(val),fontFamily:"'Inter',sans-serif",lineHeight:1}}>{val}</div>
+                              <div style={{fontSize:9,letterSpacing:1.5,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",marginTop:4}}>{lbl}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Fazit */}
+                        <div style={{padding:"12px 14px",background:"var(--bg-panel)",border:`1px solid ${T.border2}`,borderLeft:`3px solid ${result.scores?.panik<=3?"#4ade80":result.scores?.panik<=6?"#fbbf24":"#f87171"}`,borderRadius:2}}>
+                          <p style={{fontSize:15,lineHeight:1.7,color:T.textBody,fontFamily:"'EB Garamond',Georgia,serif",margin:0,fontStyle:"italic"}}>{result.urteil}</p>
+                        </div>
+                      </div>
+                    : <div style={{padding:"48px 0",textAlign:"center"}}>
+                        <p style={{fontSize:12,color:"var(--text-sub)",fontFamily:"'Inter',sans-serif",letterSpacing:1}}>LOADING ANALYSIS…</p>
+                      </div>
+              )}
 
               {/* ── SCHLAGZEILEN ── */}
               {tab==="headlines"&&(
